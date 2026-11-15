@@ -17,7 +17,7 @@ public final class ModKeys {
 
     private static KeyMapping reg(String name, int key) {
         return KeyMappingHelper.registerKeyMapping(
-                new KeyMapping("key." + KontrakDewa.MOD_ID + "." + name, InputConstants.Type.KEYSYM, key, CATEGORY));
+                new KeyMapping("key." + KontrakDewa.MOD_ID + "." + name, key, CATEGORY));
     }
 
     public static void init() {
