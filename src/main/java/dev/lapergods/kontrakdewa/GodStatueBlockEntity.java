@@ -22,7 +22,7 @@ public abstract class GodStatueBlockEntity extends BlockEntity implements GeoBlo
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new AnimationController<>(this, "idle", 0, state -> state.setAndContinue(IDLE)));
+        controllers.add(new AnimationController<GodStatueBlockEntity>("idle", 0, state -> state.setAndContinue(IDLE)));
     }
 
     @Override
