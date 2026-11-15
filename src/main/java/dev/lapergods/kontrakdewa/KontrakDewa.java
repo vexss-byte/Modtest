@@ -16,6 +16,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -96,7 +97,12 @@ public class KontrakDewa implements ModInitializer {
 
         // Weapon takdir
         ItemStack weapon = new ItemStack(ModItems.weaponFor(god));
-        if (!player.getInventory().add(weapon)) player.drop(weapon, false);
+        if (!player.getInventory().add(weapon)) {
+            // Inventory penuh: jatuhkan senjata di kaki pemain
+            ItemEntity droppedWeapon = new ItemEntity(
+                    player.level(), player.getX(), player.getY(), player.getZ(), weapon);
+            player.level().addFreshEntity(droppedWeapon);
+        }
 
         player.level().playSound(null, player.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.0f, 1.0f);
         player.sendSystemMessage(Component.literal("Kontrak dengan " + god.displayName + " aktif. Kamu menerima "
