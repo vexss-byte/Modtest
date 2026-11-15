@@ -185,7 +185,7 @@ final class RaSkills {
                 hitAny = true;
             }
             for (int k = 0; k < 8; k++) {
-                double a = level.random.nextDouble() * Math.PI * 2, d = level.random.nextDouble() * radius;
+                double a = level.getRandom().nextDouble() * Math.PI * 2, d = level.getRandom().nextDouble() * radius;
                 SkillUtil.igniteAt(level, center.add(Math.cos(a) * d, 0.5, Math.sin(a) * d), new Vec3(0, 1, 0));
             }
             if (hitAny && p.isAlive()) Faith.addBattleXp(p, ModConfig.get().skillHitXp);

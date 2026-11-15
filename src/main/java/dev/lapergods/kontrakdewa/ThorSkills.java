@@ -195,7 +195,7 @@ final class ThorSkills {
         Scheduler.repeat(level.getServer(), 10, 12, i -> {
             RaSkills.ring(level, ParticleTypes.ELECTRIC_SPARK, c.add(0, 0.15, 0), cfg.range, 36);
             for (int k = 0; k < 6; k++) {
-                double a = level.random.nextDouble() * Math.PI * 2, d = level.random.nextDouble() * cfg.range;
+                double a = level.getRandom().nextDouble() * Math.PI * 2, d = level.getRandom().nextDouble() * cfg.range;
                 level.sendParticles(ParticleTypes.ELECTRIC_SPARK, c.x + Math.cos(a) * d, c.y + 0.3, c.z + Math.sin(a) * d, 2, 0.1, 0.4, 0.1, 0.1);
             }
             AABB box = new AABB(c, c).inflate(cfg.range, 3, cfg.range);
@@ -230,7 +230,7 @@ final class ThorSkills {
         level.playSound(null, c.x, c.y, c.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 3.0f, 0.5f);
         Scheduler.repeat(level.getServer(), 6, 27, i -> {
             if (i % 2 == 0) RaSkills.ring(level, ParticleTypes.ELECTRIC_SPARK, c.add(0, 0.2, 0), cfg.range, 60);
-            double a = level.random.nextDouble() * Math.PI * 2, d = Math.sqrt(level.random.nextDouble()) * cfg.range;
+            double a = level.getRandom().nextDouble() * Math.PI * 2, d = Math.sqrt(level.getRandom().nextDouble()) * cfg.range;
             Vec3 strike = new Vec3(c.x + Math.cos(a) * d, c.y, c.z + Math.sin(a) * d);
             bolt(level, strike);
             level.sendParticles(ParticleTypes.ELECTRIC_SPARK, strike.x, strike.y + 0.5, strike.z, 25, 0.5, 0.6, 0.5, 0.3);
