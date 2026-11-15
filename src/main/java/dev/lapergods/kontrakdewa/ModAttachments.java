@@ -6,20 +6,39 @@ import net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.minecraft.network.codec.ByteBufCodecs;
 
-/** Data per pemain. Keduanya disinkronkan ke client pemain itu sendiri (untuk HUD). */
+/** Data per pemain. Contract & Battle Mode terlihat semua pemain (untuk weapon di punggung); Faith hanya untuk pemilik. */
 public final class ModAttachments {
-    /** id dewa yang diikuti pemain ("ra" / "thor"); null = belum berkontrak. Permanen, ikut setelah mati. */
+    /** id dewa ("ra" / "thor"); null = belum berkontrak. */
     public static final AttachmentType<String> CONTRACT = AttachmentRegistry.create(
             KontrakDewa.id("contract"),
-            builder -> builder
-                    .persistent(Codec.STRING)
-                    .copyOnDeath()
-                    .syncWith(ByteBufCodecs.STRING_UTF8, AttachmentSyncPredicate.targetOnly()));
+            b -> b.persistent(Codec.STRING).copyOnDeath()
+                    .syncWith(ByteBufCodecs.STRING_UTF8, AttachmentSyncPredicate.all()));
 
-    /** Battle Mode menyala/mati. Tidak disimpan: selalu mati lagi setelah login. */
+    /** Tidak disimpan: selalu mati lagi setelah login. */
     public static final AttachmentType<Boolean> BATTLE_MODE = AttachmentRegistry.create(
             KontrakDewa.id("battle_mode"),
-            builder -> builder.syncWith(ByteBufCodecs.BOOL, AttachmentSyncPredicate.targetOnly()));
+            b -> b.syncWith(ByteBufCodecs.BOOL, AttachmentSyncPredicate.all()));
+
+    public static final AttachmentType<Integer> FAITH_XP = AttachmentRegistry.create(
+            KontrakDewa.id("faith_xp"),
+            b -> b.persistent(Codec.INT).copyOnDeath()
+                    .syncWith(ByteBufCodecs.INT, AttachmentSyncPredicate.targetOnly()));
+
+    /** Batas XP battle harian: hari (epoch day WIB) dan XP yang sudah didapat hari itu. */
+    public static final AttachmentType<Long> DAILY_DAY = AttachmentRegistry.create(
+            KontrakDewa.id("daily_day"), b -> b.persistent(Codec.LONG).copyOnDeath());
+    public static final AttachmentType<Integer> DAILY_XP = AttachmentRegistry.create(
+            KontrakDewa.id("daily_xp"), b -> b.persistent(Codec.INT).copyOnDeath());
+
+    /** Persembahan: hari terakhir (epoch day WIB) dan streak beruntun. */
+    public static final AttachmentType<Long> OFFER_DAY = AttachmentRegistry.create(
+            KontrakDewa.id("offer_day"), b -> b.persistent(Codec.LONG).copyOnDeath());
+    public static final AttachmentType<Integer> STREAK = AttachmentRegistry.create(
+            KontrakDewa.id("streak"), b -> b.persistent(Codec.INT).copyOnDeath());
+
+    /** Waktu (ms) terakhir mengambil weapon di patung. */
+    public static final AttachmentType<Long> WEAPON_CLAIM_AT = AttachmentRegistry.create(
+            KontrakDewa.id("weapon_claim_at"), b -> b.persistent(Codec.LONG).copyOnDeath());
 
     public static void init() {
         // memaksa class ter-load supaya attachment terdaftar

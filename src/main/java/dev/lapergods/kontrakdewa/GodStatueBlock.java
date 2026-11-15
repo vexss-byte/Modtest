@@ -60,7 +60,16 @@ public class GodStatueBlock extends BaseEntityBlock {
         }
 
         String current = sp.getAttached(ModAttachments.CONTRACT);
-        ServerPlayNetworking.send(sp, new OpenContractPayload(god.id, current == null ? "" : current));
+
+        // Persembahan harian: klik kanan sambil memegang item persembahan dewa ini.
+        if (god.id.equals(current) && Faith.isOffering(god, sp.getMainHandItem())) {
+            Faith.offer(sp, god, sp.getMainHandItem());
+            return InteractionResult.SUCCESS;
+        }
+
+        ServerPlayNetworking.send(sp, new OpenContractPayload(god.id, current == null ? "" : current,
+                Faith.xp(sp), Faith.streak(sp), Faith.offeredToday(sp),
+                current != null && WeaponService.has(sp, BattleService.godOf(sp))));
         return InteractionResult.SUCCESS;
     }
 }

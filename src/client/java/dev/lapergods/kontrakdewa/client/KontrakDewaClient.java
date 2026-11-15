@@ -2,6 +2,7 @@ package dev.lapergods.kontrakdewa.client;
 
 import dev.lapergods.kontrakdewa.God;
 import dev.lapergods.kontrakdewa.ModBlocks;
+import dev.lapergods.kontrakdewa.net.CooldownPayload;
 import dev.lapergods.kontrakdewa.net.OpenContractPayload;
 import dev.lapergods.kontrakdewa.net.ToggleBattlePayload;
 import dev.lapergods.kontrakdewa.net.UseSkillPayload;
@@ -22,8 +23,11 @@ public class KontrakDewaClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(OpenContractPayload.TYPE, (payload, context) -> {
             God god = God.byId(payload.godId());
             if (god == null) return;
-            context.client().gui.setScreen(new ContractScreen(god, payload.currentGodId()));
+            context.client().gui.setScreen(new ContractScreen(god, payload));
         });
+
+        ClientPlayNetworking.registerGlobalReceiver(CooldownPayload.TYPE,
+                (payload, context) -> ClientCooldowns.set(payload.slot(), payload.ticks()));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null) return;

@@ -30,6 +30,16 @@ python3 tools/bbmodel_to_geckolib.py tools/thor_statue_altar_v12_ra_style_thor_m
 - Menandatangani kontrak memberi weapon takdir (Sun Staff / Thunder Hammer).
 - HUD kanan-bawah: status Battle Mode, label harga, 3 slot skill.
 
+## Tahap 3a
+- **Faith (1-10):** XP dari Battle Mode (tiap 10 detik), dari tiap skill yang kena target, dan dari persembahan harian. Batas XP battle 600/hari. Naik level otomatis.
+- **Persembahan harian** (reset 00.00 WIB): klik kanan patung sambil pegang item. Ra: emas / gandum / bunga matahari. Thor: besi / copper / lightning rod. Streak harian menambah bonus XP.
+- **Skill 1-3** (butuh Battle Mode + weapon di tangan utama):
+  - Ra: Sunspear (tombak cahaya), Noon Beam (sinar menembus, membakar), Mirage Step (dash + Speed). Damage dikali harga siang/malam.
+  - Thor: Thunder Strike (petir ke target), Chain Lightning (loncat antar musuh), Hammer Throw (versi instan: hantaman + petir + dorongan).
+  - Cooldown tampil di HUD. Skill 4-6 terkunci sampai Faith 3 / 6 / 9 (isinya menyusul di 3b).
+- **Weapon takdir:** hanya 1, tidak jatuh saat mati (diberi lagi saat respawn), bisa diambil lagi lewat tombol "Ambil Weapon" di layar kontrak (cooldown 10 menit).
+- **Config:** `config/kontrakdewa.json` (dibuat otomatis): XP, batas harian, damage/cooldown/jarak tiap skill, `allowBlockDamage`. Restart server setelah mengubah. Catatan: HUD client membaca ambang Faith dari config client, jadi samakan file config kalau mengubah `faithThresholds` di server.
+
 ## Rencana
 2. Weapon takdir, HUD skill (Z/C/V), Battle Mode, harga tiap dewa.
 3. Skill 1-3, Faith + persembahan harian, skill 4-6, hukuman ganti kontrak.
