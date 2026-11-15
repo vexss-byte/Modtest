@@ -1,7 +1,6 @@
 package dev.lapergods.kontrakdewa.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
 import dev.lapergods.kontrakdewa.BattleService;
 import dev.lapergods.kontrakdewa.God;
 import dev.lapergods.kontrakdewa.ModItems;
@@ -19,6 +18,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
+import org.joml.Matrix4f;
 
 /**
  * Menggambar weapon takdir di punggung pemain yang punya kontrak tapi tidak sedang Battle Mode
@@ -59,7 +59,7 @@ public class BackWeaponLayer extends RenderLayer<AvatarRenderState, PlayerModel>
 
         poseStack.pushPose();
         poseStack.translate(OFFSET_X, OFFSET_Y, OFFSET_Z);
-        poseStack.mulPose(Axis.ZP.rotationDegrees(180.0F + TILT_DEGREES)); // layer berada di ruang terbalik: putar tegak lalu miringkan
+        poseStack.mulPose(new Matrix4f().rotateZ((float) Math.toRadians(180.0F + TILT_DEGREES))); // layer berada di ruang terbalik: putar tegak lalu miringkan
         poseStack.scale(SCALE, SCALE, SCALE);
         itemState.submit(poseStack, collector, light, OverlayTexture.NO_OVERLAY, state.outlineColor);
         poseStack.popPose();
