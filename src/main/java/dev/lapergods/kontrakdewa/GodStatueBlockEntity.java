@@ -6,7 +6,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import com.geckolib.animatable.GeoBlockEntity;
 import com.geckolib.animatable.instance.AnimatableInstanceCache;
-import com.geckolib.animation.AnimatableManager;
+import com.geckolib.animatable.manager.AnimatableManager;
 import com.geckolib.animation.AnimationController;
 import com.geckolib.animation.RawAnimation;
 import com.geckolib.util.GeckoLibUtil;
@@ -22,7 +22,7 @@ public abstract class GodStatueBlockEntity extends BlockEntity implements GeoBlo
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new AnimationController<>(0, state -> state.setAndContinue(IDLE)));
+        controllers.add(new AnimationController<>(this, "idle", 0, state -> state.setAndContinue(IDLE)));
     }
 
     @Override

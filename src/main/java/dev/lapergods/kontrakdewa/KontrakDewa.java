@@ -3,7 +3,7 @@ package dev.lapergods.kontrakdewa;
 import dev.lapergods.kontrakdewa.net.OpenContractPayload;
 import dev.lapergods.kontrakdewa.net.SignContractPayload;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.chat.Component;
@@ -33,7 +33,7 @@ public class KontrakDewa implements ModInitializer {
         ModAttachments.init();
         ModBlocks.init();
 
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.OP_BLOCKS).register(entries -> {
+        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.OP_BLOCKS).register(entries -> {
             entries.accept(ModBlocks.RA_STATUE_ITEM);
             entries.accept(ModBlocks.THOR_STATUE_ITEM);
         });

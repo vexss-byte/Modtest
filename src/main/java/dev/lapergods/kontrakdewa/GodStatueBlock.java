@@ -1,6 +1,5 @@
 package dev.lapergods.kontrakdewa;
 
-import com.mojang.serialization.MapCodec;
 import dev.lapergods.kontrakdewa.net.OpenContractPayload;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.BlockPos;
@@ -19,8 +18,6 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class GodStatueBlock extends BaseEntityBlock {
-    public static final MapCodec<GodStatueBlock> CODEC = simpleCodec(p -> new GodStatueBlock(God.RA, p));
-
     // Bentuk interaksi sementara (model aslinya besar, ~3,6 x 6,4 blok). Disetel lagi nanti.
     private static final VoxelShape SHAPE = Block.box(-8, 0, -8, 24, 32, 24);
 
@@ -33,11 +30,6 @@ public class GodStatueBlock extends BaseEntityBlock {
 
     public God god() {
         return god;
-    }
-
-    @Override
-    protected MapCodec<? extends BaseEntityBlock> codec() {
-        return CODEC;
     }
 
     @Override
