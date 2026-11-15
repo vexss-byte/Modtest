@@ -13,6 +13,10 @@ public final class ModKeys {
             reg("skill_1", InputConstants.KEY_Z),
             reg("skill_2", InputConstants.KEY_C),
             reg("skill_3", InputConstants.KEY_V),
+            reg("skill_4", InputConstants.KEY_X),
+            reg("skill_5", InputConstants.KEY_R),
+            reg("skill_6", InputConstants.KEY_G),
+            reg("skill_special", InputConstants.KEY_H),
     };
 
     private static KeyMapping reg(String name, int key) {

@@ -40,6 +40,15 @@ python3 tools/bbmodel_to_geckolib.py tools/thor_statue_altar_v12_ra_style_thor_m
 - **Weapon takdir:** hanya 1, tidak jatuh saat mati (diberi lagi saat respawn), bisa diambil lagi lewat tombol "Ambil Weapon" di layar kontrak (cooldown 10 menit).
 - **Config:** `config/kontrakdewa.json` (dibuat otomatis): XP, batas harian, damage/cooldown/jarak tiap skill, `allowBlockDamage`. Restart server setelah mengubah. Catatan: HUD client membaca ambang Faith dari config client, jadi samakan file config kalau mengubah `faithThresholds` di server.
 
+## Tahap 3b
+- **Skill 4-6** (terbuka di Faith 3 / 6 / 9), tombol X / R / G:
+  - Ra: Solar Flare (ledakan cahaya di sekitarmu, membakar + membutakan), Scarab Guard (perisai Absorption + Resistance), Call the Sun (tandai lingkaran, 2 detik kemudian kolom cahaya menghantam, membakar tanah).
+  - Thor: Storm Leap (melompat lalu menghantam dengan gelombang petir), Static Field (area listrik 6 detik, melukai + memperlambat), Overcharge (5 stack Charged: tiap pukulan senjata menambah damage petir).
+- **Special Magic Thor** (Faith 10, tombol H): Ragnarok Storm, badai petir 8 detik di titik bidikan.
+- **Hukuman ganti kontrak:** klik patung dewa lain lalu "Ganti Kontrak": Faith -50%, weapon lama hancur, Weakness + Slowness 30 menit, murka dewa lama (Ra membakar, Thor menyambar), terkunci 24 jam.
+- **Weapon di punggung:** pemain berkontrak yang tidak Battle Mode menampilkan weapon di punggung (terlihat pemain lain). Posisi/rotasi/skala ada di konstanta paling atas `BackWeaponLayer.java`.
+- Config skill baru: `ra_4..6`, `thor_4..7` di `config/kontrakdewa.json` (`range` = radius/jarak sesuai skill).
+
 ## Rencana
 2. Weapon takdir, HUD skill (Z/C/V), Battle Mode, harga tiap dewa.
 3. Skill 1-3, Faith + persembahan harian, skill 4-6, hukuman ganti kontrak.

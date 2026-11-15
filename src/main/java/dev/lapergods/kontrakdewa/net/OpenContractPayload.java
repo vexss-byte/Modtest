@@ -8,7 +8,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /** Server -> client: buka layar kontrak + info Faith pemain. currentGodId kosong ("") kalau belum berkontrak. */
 public record OpenContractPayload(String godId, String currentGodId, int faithXp, int streak,
-                                  boolean offeredToday, boolean hasWeapon) implements CustomPacketPayload {
+                                  int flags, int lockMinutes) implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<OpenContractPayload> TYPE =
             new CustomPacketPayload.Type<>(KontrakDewa.id("open_contract"));
 
@@ -17,9 +17,21 @@ public record OpenContractPayload(String godId, String currentGodId, int faithXp
             ByteBufCodecs.STRING_UTF8, OpenContractPayload::currentGodId,
             ByteBufCodecs.VAR_INT, OpenContractPayload::faithXp,
             ByteBufCodecs.VAR_INT, OpenContractPayload::streak,
-            ByteBufCodecs.BOOL, OpenContractPayload::offeredToday,
-            ByteBufCodecs.BOOL, OpenContractPayload::hasWeapon,
+            ByteBufCodecs.VAR_INT, OpenContractPayload::flags,
+            ByteBufCodecs.VAR_INT, OpenContractPayload::lockMinutes,
             OpenContractPayload::new);
+
+    public static int flags(boolean offeredToday, boolean hasWeapon) {
+        return (offeredToday ? 1 : 0) | (hasWeapon ? 2 : 0);
+    }
+
+    public boolean offeredToday() {
+        return (flags & 1) != 0;
+    }
+
+    public boolean hasWeapon() {
+        return (flags & 2) != 0;
+    }
 
     @Override
     public Type<? extends CustomPacketPayload> type() {

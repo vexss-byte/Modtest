@@ -55,6 +55,13 @@ public final class WeaponService {
         p.sendSystemMessage(Component.literal(god.displayName + " mengembalikan " + god.weaponName + " kepadamu."));
     }
 
+    /** Hapus semua weapon dewa ini dari inventori (dipakai hukuman ganti kontrak). */
+    public static void removeAll(ServerPlayer p, God god) {
+        Item w = ModItems.weaponFor(god);
+        Inventory inv = p.getInventory();
+        for (int i = 0; i < inv.getContainerSize(); i++) if (inv.getItem(i).is(w)) inv.setItem(i, ItemStack.EMPTY);
+    }
+
     /** Hapus weapon berlebih (anti duplikasi). */
     public static void dedupe(ServerPlayer p, God god) {
         Item w = ModItems.weaponFor(god);

@@ -15,7 +15,8 @@ public final class SkillService {
 
     public static void use(ServerPlayer p, int slot) {
         God god = BattleService.godOf(p);
-        if (god == null || slot < 0 || slot > 5) return;
+        if (god == null || slot < 0 || slot > 6) return;
+        if (slot == 6 && god.special == null) return; // hanya Thor punya Special Magic
         if (!BattleService.inBattle(p)) {
             p.sendSystemMessage(Component.literal("Aktifkan Battle Mode dulu (tekan B)."), true);
             return;
@@ -26,18 +27,13 @@ public final class SkillService {
         }
         int need = Faith.requiredFaithForSlot(slot);
         if (Faith.level(p) < need) {
-            p.sendSystemMessage(Component.literal(god.skills.get(slot) + " terkunci: butuh Faith " + need + "."), true);
+            p.sendSystemMessage(Component.literal(god.skillName(slot) + " terkunci: butuh Faith " + need + "."), true);
             return;
         }
-        if (slot >= 3) {
-            p.sendSystemMessage(Component.literal(god.skills.get(slot) + " menyusul di tahap 3b."), true);
-            return;
-        }
-
         long now = p.level().getGameTime();
-        long[] cds = COOLDOWNS.computeIfAbsent(p.getUUID(), k -> new long[6]);
+        long[] cds = COOLDOWNS.computeIfAbsent(p.getUUID(), k -> new long[7]);
         if (cds[slot] > now) {
-            p.sendSystemMessage(Component.literal(god.skills.get(slot) + " cooldown "
+            p.sendSystemMessage(Component.literal(god.skillName(slot) + " cooldown "
                     + String.format("%.1f", (cds[slot] - now) / 20.0) + " detik."), true);
             return;
         }

@@ -51,6 +51,7 @@ public final class Faith {
             case 3 -> 3;
             case 4 -> 6;
             case 5 -> 9;
+            case 6 -> 10; // Special Magic
             default -> 1;
         };
     }

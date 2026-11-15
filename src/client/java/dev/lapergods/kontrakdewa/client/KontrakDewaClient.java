@@ -9,7 +9,9 @@ import dev.lapergods.kontrakdewa.net.UseSkillPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityRenderLayerRegistrationCallback;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
+import net.minecraft.client.renderer.entity.player.AvatarRenderer;
 
 public class KontrakDewaClient implements ClientModInitializer {
     @Override
@@ -18,6 +20,13 @@ public class KontrakDewaClient implements ClientModInitializer {
         BlockEntityRenderers.register(ModBlocks.THOR_BE, ctx -> new GodStatueRenderer(ctx, ModBlocks.THOR_BE));
 
         ModKeys.init();
+
+        // Weapon di punggung pemain (saat tidak Battle Mode)
+        LivingEntityRenderLayerRegistrationCallback.EVENT.register((entityType, entityRenderer, registrationHelper, context) -> {
+            if (entityRenderer instanceof AvatarRenderer avatarRenderer) {
+                registrationHelper.register(new BackWeaponLayer(avatarRenderer));
+            }
+        });
         SkillHud.init();
 
         ClientPlayNetworking.registerGlobalReceiver(OpenContractPayload.TYPE, (payload, context) -> {

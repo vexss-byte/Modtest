@@ -9,6 +9,7 @@ import dev.lapergods.kontrakdewa.net.UseSkillPayload;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -80,11 +81,15 @@ public class KontrakDewa implements ModInitializer {
         });
 
         // Tiap detik: harga dewa (siang/malam berubah), XP Faith dari Battle Mode, anti duplikasi weapon.
+        ChargeService.init();
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> Scheduler.clear());
         ServerTickEvents.END_SERVER_TICK.register(server -> {
+            Scheduler.tick(server);
             if (server.getTickCount() % 20 != 0) return;
             ModConfig cfg = ModConfig.get();
             for (ServerPlayer p : server.getPlayerList().getPlayers()) {
                 BattleService.refresh(p);
+                ChargeService.refresh(p);
                 God god = BattleService.godOf(p);
                 if (god != null) WeaponService.dedupe(p, god);
                 if (god != null && BattleService.inBattle(p)) {
@@ -125,9 +130,17 @@ public class KontrakDewa implements ModInitializer {
         }
         if (current != null) {
             God other = God.byId(current);
-            player.sendSystemMessage(Component.literal("Kamu sudah terikat kontrak dengan "
-                    + (other != null ? other.displayName : current)
-                    + ". Ganti kontrak = hukuman dewa (menyusul di tahap 3b)."));
+            long lockLeft = player.getAttachedOrElse(ModAttachments.LOCK_UNTIL, 0L) - System.currentTimeMillis();
+            if (lockLeft > 0) {
+                player.sendSystemMessage(Component.literal("Murka dewa masih menguncimu. Kamu bisa ganti kontrak lagi dalam "
+                        + (lockLeft / 60000L + 1) + " menit."));
+                return;
+            }
+            if (other == null) {
+                player.setAttached(ModAttachments.CONTRACT, god.id);
+            } else {
+                Punishment.apply(player, other, god);
+            }
             return;
         }
 

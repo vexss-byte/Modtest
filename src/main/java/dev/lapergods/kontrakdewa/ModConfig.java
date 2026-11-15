@@ -57,6 +57,13 @@ public final class ModConfig {
         c.skills.putIfAbsent("thor_1", new SkillCfg(6, 9, 30));  // Thunder Strike
         c.skills.putIfAbsent("thor_2", new SkillCfg(10, 8, 24)); // Chain Lightning
         c.skills.putIfAbsent("thor_3", new SkillCfg(12, 10, 18));// Hammer Throw
+        c.skills.putIfAbsent("ra_4", new SkillCfg(14, 6, 7));    // Solar Flare (range = radius)
+        c.skills.putIfAbsent("ra_5", new SkillCfg(20, 0, 0));    // Scarab Guard (perisai)
+        c.skills.putIfAbsent("ra_6", new SkillCfg(60, 20, 30));  // Call the Sun (range = jarak bidik; radius 7)
+        c.skills.putIfAbsent("thor_4", new SkillCfg(14, 10, 5)); // Storm Leap (range = radius hantaman)
+        c.skills.putIfAbsent("thor_5", new SkillCfg(18, 2, 6));  // Static Field (damage per 0,5 detik, range = radius)
+        c.skills.putIfAbsent("thor_6", new SkillCfg(25, 5, 0));  // Overcharge (damage = bonus petir per pukulan)
+        c.skills.putIfAbsent("thor_7", new SkillCfg(120, 12, 12)); // Ragnarok Storm (range = radius badai)
         if (c.faithThresholds == null || c.faithThresholds.length != 10) c.faithThresholds = new ModConfig().faithThresholds;
         return c;
     }

@@ -44,12 +44,14 @@ public class ContractScreen extends Screen {
         px = width - pw - 12;
         py = 12;
 
-        Component label = signedHere ? Component.literal("Kontrak aktif") : Component.literal("Sign Contract");
+        Component label = signedHere ? Component.literal("Kontrak aktif")
+                : hasOther ? Component.literal("Ganti Kontrak (HUKUMAN)").withStyle(net.minecraft.ChatFormatting.RED)
+                : Component.literal("Sign Contract");
         Button sign = Button.builder(label, b -> {
             ClientPlayNetworking.send(new SignContractPayload(god.id));
             onClose();
         }).bounds(px + 10, py + ph - 70, pw - 20, 22).build();
-        sign.active = !signedHere;
+        sign.active = !signedHere && info.lockMinutes() <= 0;
         addRenderableWidget(sign);
 
         if (signedHere && !info.hasWeapon()) {
@@ -106,8 +108,18 @@ public class ContractScreen extends Screen {
             wrapped(g, offer, x + 2, y, w - 2, GREY);
         }
 
+        if (hasOther) {
+            y += 10;
+            g.text(font, "Hukuman ganti kontrak", x + 2, y, RED, true);
+            y += 12;
+            y = wrapped(g, "Faith -50%, weapon lama hancur, Weakness + Slowness 30 menit, murka "
+                    + (info.currentGodId().equals("ra") ? "Ra (terbakar)" : "Thor (disambar petir)")
+                    + ", lalu terkunci 24 jam.", x + 2, y, w - 2, GREY);
+        }
+
         String status;
-        if (signedHere) status = "Kamu terikat kontrak dengan " + god.displayName + ".";
+        if (hasOther && info.lockMinutes() > 0) status = "Terkunci murka dewa: " + info.lockMinutes() + " menit lagi.";
+        else if (signedHere) status = "Kamu terikat kontrak dengan " + god.displayName + ".";
         else if (hasOther) status = "Kamu sudah punya kontrak dengan dewa lain.";
         else status = "Belum punya kontrak. Tanda tangan untuk mulai.";
         wrapped(g, status, x, py + ph - 40, w, GREY);

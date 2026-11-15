@@ -67,9 +67,12 @@ public class GodStatueBlock extends BaseEntityBlock {
             return InteractionResult.SUCCESS;
         }
 
+        long lockLeft = sp.getAttachedOrElse(ModAttachments.LOCK_UNTIL, 0L) - System.currentTimeMillis();
+        int lockMinutes = lockLeft > 0 ? (int) (lockLeft / 60000L) + 1 : 0;
+        God mine = BattleService.godOf(sp);
+        boolean hasWeapon = mine != null && WeaponService.has(sp, mine);
         ServerPlayNetworking.send(sp, new OpenContractPayload(god.id, current == null ? "" : current,
-                Faith.xp(sp), Faith.streak(sp), Faith.offeredToday(sp),
-                current != null && WeaponService.has(sp, BattleService.godOf(sp))));
+                Faith.xp(sp), Faith.streak(sp), OpenContractPayload.flags(Faith.offeredToday(sp), hasWeapon), lockMinutes));
         return InteractionResult.SUCCESS;
     }
 }

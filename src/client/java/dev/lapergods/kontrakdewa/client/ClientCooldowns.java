@@ -2,7 +2,7 @@ package dev.lapergods.kontrakdewa.client;
 
 /** Cooldown skill di sisi client (hanya untuk tampilan HUD; server yang menentukan). */
 public final class ClientCooldowns {
-    private static final long[] END_MS = new long[6];
+    private static final long[] END_MS = new long[7];
 
     public static void set(int slot, int ticks) {
         if (slot >= 0 && slot < END_MS.length) END_MS[slot] = System.currentTimeMillis() + ticks * 50L;

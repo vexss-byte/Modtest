@@ -40,6 +40,15 @@ public final class ModAttachments {
     public static final AttachmentType<Long> WEAPON_CLAIM_AT = AttachmentRegistry.create(
             KontrakDewa.id("weapon_claim_at"), b -> b.persistent(Codec.LONG).copyOnDeath());
 
+    /** Stack "Charged" Thor (Overcharge). Tidak disimpan; terlihat pemilik untuk HUD. */
+    public static final AttachmentType<Integer> CHARGED = AttachmentRegistry.create(
+            KontrakDewa.id("charged"),
+            b -> b.syncWith(ByteBufCodecs.INT, AttachmentSyncPredicate.targetOnly()));
+
+    /** Waktu (ms) sampai pemain boleh tanda tangan kontrak baru (setelah hukuman ganti kontrak). */
+    public static final AttachmentType<Long> LOCK_UNTIL = AttachmentRegistry.create(
+            KontrakDewa.id("lock_until"), b -> b.persistent(Codec.LONG).copyOnDeath());
+
     public static void init() {
         // memaksa class ter-load supaya attachment terdaftar
     }
