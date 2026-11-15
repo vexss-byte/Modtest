@@ -24,6 +24,12 @@ python3 tools/bbmodel_to_geckolib.py tools/thor_statue_altar_v12_ra_style_thor_m
 ```
 (angka 8 / 0 = titik tengah X/Z model di Blockbench.)
 
+## Tahap 2 (ini)
+- Tekan **B** = Battle Mode (hanya jika sudah berkontrak). Z/C/V = skill 1-3 (masih placeholder; semua tombol bisa diganti di Controls > Kontrak Dewa).
+- Harga dewa aktif saat Battle Mode: Ra siang cerah +20% / malam -25% damage, Thor armor -50%.
+- Menandatangani kontrak memberi weapon takdir (Sun Staff / Thunder Hammer).
+- HUD kanan-bawah: status Battle Mode, label harga, 3 slot skill.
+
 ## Rencana
 2. Weapon takdir, HUD skill (Z/C/V), Battle Mode, harga tiap dewa.
 3. Skill 1-3, Faith + persembahan harian, skill 4-6, hukuman ganti kontrak.

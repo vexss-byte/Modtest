@@ -1,4 +1,11 @@
 {
   "block.kontrakdewa.ra_statue": "Patung Ra",
-  "block.kontrakdewa.thor_statue": "Patung Thor"
+  "block.kontrakdewa.thor_statue": "Patung Thor",
+  "item.kontrakdewa.sun_staff": "Sun Staff",
+  "item.kontrakdewa.thunder_hammer": "Thunder Hammer",
+  "key.category.kontrakdewa.main": "Kontrak Dewa",
+  "key.kontrakdewa.battle_mode": "Battle Mode",
+  "key.kontrakdewa.skill_1": "Skill 1",
+  "key.kontrakdewa.skill_2": "Skill 2",
+  "key.kontrakdewa.skill_3": "Skill 3"
 }
