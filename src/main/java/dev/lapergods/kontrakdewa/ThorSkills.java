@@ -96,7 +96,7 @@ final class ThorSkills {
         return true;
     }
 
-    /** Hammer Throw (versi instan): hantaman di titik bidikan, damage + ledakan petir kecil di sekitarnya, mendorong musuh. */
+    /** Hammer Throw (versi instan): hantaman di titik bidikan, damage + ledakan petir kecil di sekitarnya (dorongan dari damage serangan). */
     private static boolean hammerThrow(ServerPlayer p) {
         ServerLevel level = SkillUtil.level(p);
         ModConfig.SkillCfg cfg = ModConfig.skill(God.THOR, 2);
@@ -118,7 +118,6 @@ final class ThorSkills {
         AABB box = new AABB(impact, impact).inflate(2.5);
         for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, box, e -> e != p && e.isAlive() && !e.isSpectator())) {
             SkillUtil.hurt(p, e, e == direct ? cfg.damage : cfg.damage * 0.5);
-            e.knockback(0.8, p.getX() - e.getX(), p.getZ() - e.getZ());
             hitAny = true;
         }
         if (hitAny) Faith.addBattleXp(p, ModConfig.get().skillHitXp);

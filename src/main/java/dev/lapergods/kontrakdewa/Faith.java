@@ -1,5 +1,6 @@
 package dev.lapergods.kontrakdewa;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -87,12 +88,13 @@ public final class Faith {
     public static List<Item> offeringItems(God god) {
         return god == God.RA
                 ? List.of(Items.GOLD_INGOT, Items.WHEAT, Items.SUNFLOWER)
-                : List.of(Items.IRON_INGOT, Items.COPPER_INGOT, Items.LIGHTNING_ROD);
+                : List.of(Items.IRON_INGOT, Items.COPPER_INGOT);
     }
 
     public static boolean isOffering(God god, ItemStack stack) {
         for (Item i : offeringItems(god)) if (stack.is(i)) return true;
-        return false;
+        // Lightning rod (semua varian karat/wax) juga diterima Thor
+        return god == God.THOR && BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath().endsWith("lightning_rod");
     }
 
     public static boolean offeredToday(Player p) {
