@@ -62,6 +62,9 @@ python3 tools/bbmodel_to_geckolib.py tools/thor_statue_altar_v12_ra_style_thor_m
 - **Weapon di punggung:** posisi diagonal (kepala kanan-atas, gagang kiri-bawah); setelan di konstanta atas `BackWeaponLayer.java`.
 - Tombol "Ambil Weapon" di layar kontrak dihapus (weapon tidak lagi dimiliki permanen).
 
+## Source Minecraft untuk referensi
+Workflow `sources.yml` (manual): tab Actions > "Minecraft Sources" > Run workflow. Menjalankan `genSources` dan mengunggah source Minecraft 26.3 yang sudah didekompilasi sebagai artifact `minecraft-sources` (ada juga `minecraft-sources-selected.zip` yang lebih kecil).
+
 ## Rencana
 2. Weapon takdir, HUD skill (Z/C/V), Battle Mode, harga tiap dewa.
 3. Skill 1-3, Faith + persembahan harian, skill 4-6, hukuman ganti kontrak.

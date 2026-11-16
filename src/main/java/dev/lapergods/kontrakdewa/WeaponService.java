@@ -85,7 +85,9 @@ public final class WeaponService {
         if (found < 0) {
             ItemStack old = inv.getItem(sel);
             inv.setItem(sel, new ItemStack(w));
-            if (!old.isEmpty() && !inv.add(old)) p.drop(old, false);
+            if (!old.isEmpty() && !inv.add(old)) {
+                p.level().addFreshEntity(new ItemEntity(p.level(), p.getX(), p.getY(), p.getZ(), old));
+            }
             return;
         }
         if (found == sel) return;
