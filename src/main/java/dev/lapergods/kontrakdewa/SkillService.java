@@ -15,8 +15,7 @@ public final class SkillService {
 
     public static void use(ServerPlayer p, int slot) {
         God god = BattleService.godOf(p);
-        if (god == null || slot < 0 || slot > 6) return;
-        if (slot == 6 && god.special == null) return; // hanya Thor punya Special Magic
+        if (god == null || slot < 0 || slot > 2) return; // sementara hanya 3 skill utama
         if (!BattleService.inBattle(p)) {
             p.sendSystemMessage(Component.literal("Aktifkan Battle Mode dulu (tekan B)."), true);
             return;

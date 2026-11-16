@@ -1,6 +1,7 @@
 package dev.lapergods.kontrakdewa;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -60,6 +61,42 @@ public final class WeaponService {
         Item w = ModItems.weaponFor(god);
         Inventory inv = p.getInventory();
         for (int i = 0; i < inv.getContainerSize(); i++) if (inv.getItem(i).is(w)) inv.setItem(i, ItemStack.EMPTY);
+    }
+
+    /**
+     * Dipanggil tiap tick untuk pemain yang sedang Battle Mode: weapon harus ada tepat 1, dan selalu di tangan utama.
+     * Weapon dimunculkan di slot hotbar terpilih (item lama dipindah), dan pemain dipaksa tetap memegangnya.
+     */
+    public static void enforce(ServerPlayer p, God god) {
+        Inventory inv = p.getInventory();
+        Item w = ModItems.weaponFor(god);
+        int found = -1;
+        for (int i = 0; i < inv.getContainerSize(); i++) {
+            ItemStack s = inv.getItem(i);
+            if (!s.is(w)) continue;
+            if (found < 0) {
+                found = i;
+                if (s.getCount() > 1) s.setCount(1);
+            } else {
+                inv.setItem(i, ItemStack.EMPTY);
+            }
+        }
+        int sel = inv.getSelectedSlot();
+        if (found < 0) {
+            ItemStack old = inv.getItem(sel);
+            inv.setItem(sel, new ItemStack(w));
+            if (!old.isEmpty() && !inv.add(old)) p.drop(old, false);
+            return;
+        }
+        if (found == sel) return;
+        if (Inventory.isHotbarSlot(found)) {
+            inv.setSelectedSlot(found);
+            p.connection.send(new ClientboundSetHeldSlotPacket(found));
+        } else {
+            ItemStack selStack = inv.getItem(sel);
+            inv.setItem(sel, inv.getItem(found));
+            inv.setItem(found, selStack);
+        }
     }
 
     /** Hapus weapon berlebih (anti duplikasi). */

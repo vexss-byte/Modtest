@@ -17,6 +17,11 @@ public final class ModItems {
     public static final Item SUN_STAFF = register("sun_staff", new Item.Properties().sword(DIVINE, 5.0F, -2.4F));
     public static final Item THUNDER_HAMMER = register("thunder_hammer", new Item.Properties().sword(DIVINE, 6.0F, -2.8F));
 
+    /** Weapon dewa mana pun (dipakai untuk mencegah jatuh/tersimpan di luar Battle Mode). */
+    public static boolean isDivine(net.minecraft.world.item.ItemStack stack) {
+        return stack.is(SUN_STAFF) || stack.is(THUNDER_HAMMER);
+    }
+
     public static Item weaponFor(God god) {
         return god == God.RA ? SUN_STAFF : THUNDER_HAMMER;
     }

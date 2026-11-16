@@ -28,10 +28,10 @@ import org.joml.Matrix4f;
 public class BackWeaponLayer extends RenderLayer<AvatarRenderState, PlayerModel> {
     // Penyetelan posisi (satuan blok, di ruang model pemain: +Y ke bawah, +Z ke belakang)
     private static final float OFFSET_X = 0.0F;
-    private static final float OFFSET_Y = 0.55F;
-    private static final float OFFSET_Z = 0.22F;
-    private static final float TILT_DEGREES = 40.0F;
-    private static final float SCALE = 1.0F;
+    private static final float OFFSET_Y = 0.40F;
+    private static final float OFFSET_Z = 0.17F;
+    private static final float TILT_DEGREES = 0.0F;
+    private static final float SCALE = 0.9F;
 
     private final ItemStackRenderState itemState = new ItemStackRenderState();
 

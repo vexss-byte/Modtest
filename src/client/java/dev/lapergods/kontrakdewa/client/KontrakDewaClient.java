@@ -1,6 +1,8 @@
 package dev.lapergods.kontrakdewa.client;
 
+import dev.lapergods.kontrakdewa.BattleService;
 import dev.lapergods.kontrakdewa.God;
+import dev.lapergods.kontrakdewa.ModItems;
 import dev.lapergods.kontrakdewa.ModBlocks;
 import dev.lapergods.kontrakdewa.net.CooldownPayload;
 import dev.lapergods.kontrakdewa.net.OpenContractPayload;
@@ -40,6 +42,17 @@ public class KontrakDewaClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null) return;
+            // Battle Mode: dipaksa tetap memegang weapon (server juga menegakkan; ini supaya tidak berkedip)
+            God mine = BattleService.godOf(client.player);
+            if (mine != null && BattleService.inBattle(client.player)) {
+                var inv = client.player.getInventory();
+                for (int i = 0; i < 9; i++) {
+                    if (inv.getItem(i).is(ModItems.weaponFor(mine))) {
+                        if (inv.getSelectedSlot() != i) inv.setSelectedSlot(i);
+                        break;
+                    }
+                }
+            }
             while (ModKeys.BATTLE.consumeClick()) ClientPlayNetworking.send(ToggleBattlePayload.INSTANCE);
             for (int i = 0; i < ModKeys.SKILLS.length; i++) {
                 while (ModKeys.SKILLS[i].consumeClick()) ClientPlayNetworking.send(new UseSkillPayload(i));

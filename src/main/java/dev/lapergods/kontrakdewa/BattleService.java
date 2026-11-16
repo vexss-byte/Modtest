@@ -62,9 +62,10 @@ public final class BattleService {
         }
         boolean now = !inBattle(player);
         player.setAttached(ModAttachments.BATTLE_MODE, now);
+        if (now) WeaponService.enforce(player, god); else WeaponService.removeAll(player, god);
         refresh(player);
         player.sendSystemMessage(Component.literal(now
-                ? "Battle Mode AKTIF - kekuatan " + god.displayName + " menyala."
+                ? "Battle Mode AKTIF - " + god.weaponName + " muncul di tanganmu."
                 : "Battle Mode mati."), true);
     }
 

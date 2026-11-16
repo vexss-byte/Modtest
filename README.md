@@ -49,6 +49,19 @@ python3 tools/bbmodel_to_geckolib.py tools/thor_statue_altar_v12_ra_style_thor_m
 - **Weapon di punggung:** pemain berkontrak yang tidak Battle Mode menampilkan weapon di punggung (terlihat pemain lain). Posisi/rotasi/skala ada di konstanta paling atas `BackWeaponLayer.java`.
 - Config skill baru: `ra_4..6`, `thor_4..7` di `config/kontrakdewa.json` (`range` = radius/jarak sesuai skill).
 
+## Tahap 4: cutscene klik kanan patung
+- Klik kanan patung: kamera menengok ke patung, layar menggelap dengan vignette, bintang berkelap-kelip muncul, konstelasi dewa tergambar perlahan (Ra: cakram matahari + kepala + tongkat; Thor: palu terangkat + simbol X di dada), partikel naik di sekeliling patung, lalu panel kontrak meluncur dari kanan (total sekitar 2,7 detik). Esc menutup; rotasi kamera dikembalikan.
+- Data konstelasi (titik + garis) ada di `CosmosFx.java` (RA_NODES/RA_EDGES, THOR_NODES/THOR_EDGES), mudah diubah.
+- Waktu tiap tahap ada di konstanta atas `ContractScreen.java`.
+
+## Revisi 3b (aturan weapon & hotbar Battle)
+- **Weapon hanya ada saat Battle Mode.** Tekan B: weapon muncul di slot hotbar terpilih (item lama dipindah) dan pemain dipaksa terus memegangnya (tidak bisa ganti slot / pindah tangan). Keluar Battle Mode: weapon dihapus dari inventori. Tidak Battle Mode: weapon hanya terlihat di punggung.
+- **Hotbar Battle:** saat Battle Mode, hotbar bawaan disembunyikan dan diganti hotbar Battle (slot weapon + 3 skill Z/C/V dengan cooldown). Kartu Faith tetap di kanan-bawah.
+- **Weapon dewa tidak bisa jatuh** (mati, tombol Q, dll): item yang jatuh langsung dihapus. Setelah mati pemain otomatis keluar dari Battle Mode dan tidak membawa weapon.
+- **Fokus 3 skill utama:** tombol X/R/G/H dan HUD skill 4-6/Special Magic dinonaktifkan sementara (kode skill-nya masih ada).
+- **Weapon di punggung:** posisi diagonal (kepala kanan-atas, gagang kiri-bawah); setelan di konstanta atas `BackWeaponLayer.java`.
+- Tombol "Ambil Weapon" di layar kontrak dihapus (weapon tidak lagi dimiliki permanen).
+
 ## Rencana
 2. Weapon takdir, HUD skill (Z/C/V), Battle Mode, harga tiap dewa.
 3. Skill 1-3, Faith + persembahan harian, skill 4-6, hukuman ganti kontrak.

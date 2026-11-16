@@ -44,9 +44,8 @@ public final class Punishment {
         }
 
         p.setAttached(ModAttachments.CONTRACT, newGod.id);
-        if (!WeaponService.has(p, newGod)) WeaponService.give(p, newGod);
 
-        p.sendSystemMessage(Component.literal("Murka " + oldGod.displayName + " menimpamu! Faith turun 50%, weapon lama hancur, "
+        p.sendSystemMessage(Component.literal("Murka " + oldGod.displayName + " menimpamu! Faith turun 50%, "
                 + "Weakness + Slowness 30 menit. Kontrak baru dengan " + newGod.displayName + " aktif, "
                 + "dan kamu tidak bisa berganti kontrak lagi selama 24 jam."));
         KontrakDewa.LOGGER.info("{} meninggalkan {} dan berkontrak dengan {}", p.getName().getString(), oldGod.displayName, newGod.displayName);

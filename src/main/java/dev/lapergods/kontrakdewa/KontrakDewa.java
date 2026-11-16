@@ -9,15 +9,18 @@ import dev.lapergods.kontrakdewa.net.UseSkillPayload;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -80,19 +83,24 @@ public class KontrakDewa implements ModInitializer {
             context.server().execute(() -> WeaponService.claim(player));
         });
 
-        // Tiap detik: harga dewa (siang/malam berubah), XP Faith dari Battle Mode, anti duplikasi weapon.
         ChargeService.init();
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> Scheduler.clear());
+
+        // Tiap tick: pemain Battle Mode dipaksa memegang weapon takdir. Tiap detik: harga dewa, XP Faith,
+        // dan weapon dibuang dari inventori pemain yang TIDAK sedang Battle Mode.
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             Scheduler.tick(server);
-            if (server.getTickCount() % 20 != 0) return;
+            boolean second = server.getTickCount() % 20 == 0;
             ModConfig cfg = ModConfig.get();
             for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+                God god = BattleService.godOf(p);
+                boolean battle = god != null && BattleService.inBattle(p);
+                if (battle) WeaponService.enforce(p, god);
+                if (!second) continue;
                 BattleService.refresh(p);
                 ChargeService.refresh(p);
-                God god = BattleService.godOf(p);
-                if (god != null) WeaponService.dedupe(p, god);
-                if (god != null && BattleService.inBattle(p)) {
+                if (god != null && !battle) WeaponService.removeAll(p, god);
+                if (battle) {
                     int s = BATTLE_SECONDS.merge(p.getUUID(), 1, Integer::sum);
                     if (s % cfg.battleXpIntervalSeconds == 0) Faith.addBattleXp(p, cfg.battleXpPerInterval);
                 } else {
@@ -101,16 +109,28 @@ public class KontrakDewa implements ModInitializer {
             }
         });
 
-        // Weapon takdir tidak jatuh saat mati: buang yang jatuh di titik kematian, beri baru saat respawn.
+        // Weapon dewa tidak bisa jatuh ke tanah (mati, tombol Q, dll): langsung dihapus.
+        ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
+            if (entity instanceof ItemEntity item && ModItems.isDivine(item.getItem())) {
+                Scheduler.later(level.getServer(), 1, item::discard);
+            }
+        });
+
+        // Saat login pemain tidak Battle Mode: buang weapon yang tertinggal di inventori.
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            ServerPlayer p = handler.getPlayer();
+            God god = BattleService.godOf(p);
+            if (god != null) WeaponService.removeAll(p, god);
+        });
+
+        // Setelah mati pemain otomatis keluar dari Battle Mode (attachment tidak ikut), dan weapon tidak dibawa.
         ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
             if (alive) return;
-            String godId = oldPlayer.getAttached(ModAttachments.CONTRACT);
-            God god = godId == null ? null : God.byId(godId);
-            if (god == null) return;
-            if (oldPlayer.level() instanceof ServerLevel oldLevel) {
-                WeaponService.discardDroppedNear(oldLevel, oldPlayer.position(), god);
-            }
-            if (!WeaponService.has(newPlayer, god)) WeaponService.give(newPlayer, god);
+            God god = BattleService.godOf(newPlayer);
+            if (god == null) god = BattleService.godOf(oldPlayer);
+            if (god != null) WeaponService.removeAll(newPlayer, god);
+            newPlayer.setAttached(ModAttachments.BATTLE_MODE, false);
+            newPlayer.setAttached(ModAttachments.CHARGED, 0);
         });
     }
 
@@ -145,11 +165,10 @@ public class KontrakDewa implements ModInitializer {
         }
 
         player.setAttached(ModAttachments.CONTRACT, god.id);
-        if (!WeaponService.has(player, god)) WeaponService.give(player, god);
 
         player.level().playSound(null, player.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.0f, 1.0f);
-        player.sendSystemMessage(Component.literal("Kontrak dengan " + god.displayName + " aktif. Kamu menerima "
-                + god.weaponName + ". Tekan B untuk Battle Mode."));
+        player.sendSystemMessage(Component.literal("Kontrak dengan " + god.displayName + " aktif. Tekan B untuk Battle Mode: "
+                + god.weaponName + " akan muncul di tanganmu."));
         LOGGER.info("{} menandatangani kontrak dengan {}", player.getName().getString(), god.displayName);
     }
 
