@@ -34,7 +34,6 @@ jobs:
             esac
           done
           ls -la out
-
       - name: Ekstrak paket yang relevan (lebih kecil)
         run: |
           mkdir -p selected
@@ -51,11 +50,9 @@ jobs:
           done
           (cd selected && zip -qr ../out/minecraft-sources-selected.zip . ) || true
           ls -la out
-
       - uses: actions/upload-artifact@v4
         with:
           name: minecraft-sources
           path: out/
           if-no-files-found: warn
           include-hidden-files: true
-          
