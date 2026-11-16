@@ -24,24 +24,29 @@ jobs:
       - name: Kumpulkan hasil
         run: |
           mkdir -p out
-          echo "== semua jar sources yang ditemukan ==" | tee out/DAFTAR.txt
-          find . "$HOME/.gradle" -name "*sources*.jar" 2>/dev/null | tee -a out/DAFTAR.txt
-          # salin jar sources Minecraft (dan jar sources lain di cache Loom) ke out/
-          find . "$HOME/.gradle" -name "*sources*.jar" \( -path "*minecraft*" -o -path "*loom-cache*" \) 2>/dev/null \
-            | while read -r f; do cp "$f" "out/$(echo "$f" | tr '/' '_')"; done
+          # Nama file TIDAK boleh diawali titik (upload-artifact mengabaikan file tersembunyi)
+          find . "$HOME/.gradle" -name "*sources*.jar" 2>/dev/null | tee out/DAFTAR.txt
+          for j in $(find . -path "*minecraftMaven/net/minecraft/*" -name "*-sources.jar" 2>/dev/null); do
+            case "$j" in
+              *clientOnly*) cp "$j" out/minecraft-clientOnly-sources.jar ;;
+              *common*)     cp "$j" out/minecraft-common-sources.jar ;;
+              *)            cp "$j" "out/minecraft-$(basename "$j")" ;;
+            esac
+          done
           ls -la out
 
       - name: Ekstrak paket yang relevan (lebih kecil)
         run: |
           mkdir -p selected
-          for j in out/*minecraft*sources*.jar; do
+          for j in out/minecraft-*-sources.jar; do
             [ -f "$j" ] || continue
             unzip -q -o "$j" \
-              'net/minecraft/client/Camera*' 'net/minecraft/client/Minecraft*' 'net/minecraft/client/Options*' \
+              'net/minecraft/client/Camera*' 'net/minecraft/client/Minecraft.java' 'net/minecraft/client/Options.java' \
+              'net/minecraft/client/MouseHandler.java' 'net/minecraft/client/KeyMapping.java' \
               'net/minecraft/client/renderer/*' 'net/minecraft/client/gui/*' 'net/minecraft/client/player/*' \
               'net/minecraft/client/model/*' 'net/minecraft/client/particle/*' 'net/minecraft/client/multiplayer/*' \
-              'net/minecraft/world/entity/player/*' 'net/minecraft/world/entity/LivingEntity*' 'net/minecraft/world/item/Item*' \
-              'net/minecraft/server/level/ServerPlayer*' 'net/minecraft/core/particles/*' \
+              'net/minecraft/world/entity/player/*' 'net/minecraft/world/entity/LivingEntity.java' 'net/minecraft/world/item/Item.java' \
+              'net/minecraft/server/level/ServerPlayer.java' 'net/minecraft/core/particles/*' 'com/mojang/blaze3d/*' \
               -d selected 2>/dev/null || true
           done
           (cd selected && zip -qr ../out/minecraft-sources-selected.zip . ) || true
@@ -52,3 +57,5 @@ jobs:
           name: minecraft-sources
           path: out/
           if-no-files-found: warn
+          include-hidden-files: true
+          
