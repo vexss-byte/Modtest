@@ -1,0 +1,54 @@
+name: Minecraft Sources
+
+# Menjalankan genSources (Loom mendekompilasi Minecraft 26.3 jadi source Java yang bisa dibaca),
+# lalu mengunggah hasilnya sebagai artifact. Jalankan manual: tab Actions > "Minecraft Sources" > Run workflow.
+on:
+  workflow_dispatch:
+
+jobs:
+  sources:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 9.5.1
+
+      - name: genSources
+        run: gradle genSources --stacktrace
+
+      - name: Kumpulkan hasil
+        run: |
+          mkdir -p out
+          echo "== semua jar sources yang ditemukan ==" | tee out/DAFTAR.txt
+          find . "$HOME/.gradle" -name "*sources*.jar" 2>/dev/null | tee -a out/DAFTAR.txt
+          # salin jar sources Minecraft (dan jar sources lain di cache Loom) ke out/
+          find . "$HOME/.gradle" -name "*sources*.jar" \( -path "*minecraft*" -o -path "*loom-cache*" \) 2>/dev/null \
+            | while read -r f; do cp "$f" "out/$(echo "$f" | tr '/' '_')"; done
+          ls -la out
+
+      - name: Ekstrak paket yang relevan (lebih kecil)
+        run: |
+          mkdir -p selected
+          for j in out/*minecraft*sources*.jar; do
+            [ -f "$j" ] || continue
+            unzip -q -o "$j" \
+              'net/minecraft/client/Camera*' 'net/minecraft/client/Minecraft*' 'net/minecraft/client/Options*' \
+              'net/minecraft/client/renderer/*' 'net/minecraft/client/gui/*' 'net/minecraft/client/player/*' \
+              'net/minecraft/client/model/*' 'net/minecraft/client/particle/*' 'net/minecraft/client/multiplayer/*' \
+              'net/minecraft/world/entity/player/*' 'net/minecraft/world/entity/LivingEntity*' 'net/minecraft/world/item/Item*' \
+              'net/minecraft/server/level/ServerPlayer*' 'net/minecraft/core/particles/*' \
+              -d selected 2>/dev/null || true
+          done
+          (cd selected && zip -qr ../out/minecraft-sources-selected.zip . ) || true
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: minecraft-sources
+          path: out/
+          if-no-files-found: warn
