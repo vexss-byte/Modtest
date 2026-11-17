@@ -2,6 +2,7 @@ package dev.lapergods.kontrakdewa.client;
 
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -10,31 +11,36 @@ import org.joml.Matrix4f;
 import org.joml.Vector4f;
 
 /**
- * Kamera sinematik: mengitari titik pusat (patung) lalu berhenti. Dipakai CameraMixin untuk menimpa posisi/arah
- * kamera game saat cutscene aktif, dan oleh efek konstelasi untuk memproyeksikan titik 3D ke layar.
+ * Kamera sinematik di DEPAN patung: mulai dekat dan rendah di kaki patung, lalu mundur sambil mengayun sedikit
+ * sampai berhenti tepat menghadap bagian depan patung. Dipakai CameraMixin untuk menimpa kamera game, dan oleh
+ * efek konstelasi untuk memproyeksikan titik 3D ke layar.
  */
 public final class CutsceneCamera {
     // ---- penyetelan ----
-    public static final double ORBIT_SECONDS = 3.2;
-    private static final double SWEEP_DEGREES = 70.0;   // seberapa jauh kamera berputar mengitari patung
-    private static final double RADIUS = 11.0;          // jarak kamera dari pusat patung (blok)
-    private static final double HEIGHT_START = 2.6;     // tinggi kamera di atas pusat patung saat mulai
-    private static final double HEIGHT_END = 0.4;       // dan saat selesai berputar
+    public static final double ORBIT_SECONDS = 3.6;
+    private static final double START_FRONT = 3.4;     // jarak awal dari patung (blok), di depan
+    private static final double START_SIDE = -2.2;     // geser awal ke kiri kamera
+    private static final double START_HEIGHT = 1.0;    // tinggi awal dari dasar patung
+    private static final double FINAL_FRONT = 13.0;    // jarak akhir di depan patung
+    private static final double FINAL_HEIGHT = 1.8;    // tinggi akhir
+    private static final double ARC = 2.5;             // ayunan samping di tengah gerakan
+    /** Kalau ternyata depan model terbalik di game, ubah ke true (memutar arah "depan" 180 derajat). */
+    public static final boolean FLIP_FRONT = false;
 
     public record Pose(Vec3 pos, float yaw, float pitch) {}
 
     private static boolean active = false;
     private static long startNanos;
-    private static Vec3 center = Vec3.ZERO;
-    private static double startAngle;      // radian, sudut kamera terhadap pusat saat mulai
-    private static float yawOffset = 0f;   // geser arah pandang ke kanan supaya patung berada di sisi kiri layar
+    private static Vec3 center = Vec3.ZERO;   // pusat patung (setinggi dada)
+    private static Vec3 front = new Vec3(0, 0, -1); // vektor datar dari patung ke arah depan
+    private static float yawOffset = 0f;
 
     private CutsceneCamera() {}
 
-    public static void begin(Vec3 statueCenter, Vec3 playerPos, float framingYawOffsetDeg) {
+    public static void begin(Vec3 statueCenter, Direction facing, float framingYawOffsetDeg) {
         center = statueCenter;
-        // Mulai dari belakang pemain (arah dari patung ke pemain) supaya pemain terlihat di depan kamera.
-        startAngle = Math.atan2(playerPos.z - statueCenter.z, playerPos.x - statueCenter.x);
+        Direction f = FLIP_FRONT ? facing.getOpposite() : facing;
+        front = new Vec3(f.getStepX(), 0, f.getStepZ());
         yawOffset = framingYawOffsetDeg;
         startNanos = System.nanoTime();
         active = true;
@@ -52,37 +58,49 @@ public final class CutsceneCamera {
         return (System.nanoTime() - startNanos) / 1_000_000_000.0;
     }
 
-    /** Lompat ke detik tertentu (dipakai tombol skip). */
+    /** Lompat ke detik tertentu (tombol skip). */
     public static void skipTo(double seconds) {
         if (elapsed() < seconds) startNanos = System.nanoTime() - (long) (seconds * 1_000_000_000.0);
     }
 
+    /** Vektor datar dari patung ke arah depan (arah kamera akhir). */
+    public static Vec3 front() {
+        return front;
+    }
+
+    /** Arah "kanan" layar pada tampilan akhir (kamera menghadap patung dari depan). */
+    public static Vec3 right() {
+        return new Vec3(front.z, 0, -front.x);
+    }
+
     private static double ease(double x) {
         double c = Math.max(0, Math.min(1, x));
-        return c * c * (3 - 2 * c); // smoothstep
+        return c * c * (3 - 2 * c);
     }
 
-    private static Vec3 idealPosition(double progress) {
-        double e = ease(progress);
-        double a = startAngle + Math.toRadians(SWEEP_DEGREES) * e;
-        double h = HEIGHT_START + (HEIGHT_END - HEIGHT_START) * e;
-        return new Vec3(center.x + Math.cos(a) * RADIUS, center.y + h, center.z + Math.sin(a) * RADIUS);
+    private static Vec3 base() {
+        return center.subtract(0, 3.0, 0);
     }
 
-    /** Posisi akhir kamera (tanpa tabrakan) — dipakai untuk menghadapkan bidang konstelasi ke kamera. */
-    public static Vec3 finalCameraPosition() {
-        return idealPosition(1.0);
+    private static Vec3 idealPosition(double e) {
+        Vec3 right = right();
+        Vec3 base = base();
+        Vec3 start = base.add(front.scale(START_FRONT)).add(right.scale(START_SIDE)).add(0, START_HEIGHT, 0);
+        Vec3 end = base.add(front.scale(FINAL_FRONT)).add(0, FINAL_HEIGHT, 0);
+        Vec3 p = start.add(end.subtract(start).scale(e));
+        return p.add(right.scale(ARC * Math.sin(Math.PI * e)));
     }
 
     public static Pose pose() {
         if (!active) return null;
         Minecraft mc = Minecraft.getInstance();
-        Vec3 ideal = idealPosition(elapsed() / ORBIT_SECONDS);
+        double e = ease(elapsed() / ORBIT_SECONDS);
+        Vec3 ideal = idealPosition(e);
         Vec3 pos = ideal;
 
-        // Jangan tembus blok: potong jarak kalau ada penghalang antara pusat dan posisi ideal.
+        // Jangan tembus blok: potong jarak kalau ada penghalang antara patung dan posisi ideal.
         if (mc.level != null && mc.player != null) {
-            Vec3 from = center.add(0, 1.0, 0);
+            Vec3 from = center.add(0, 0.5, 0);
             BlockHitResult hit = mc.level.clip(new ClipContext(from, ideal, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, mc.player));
             if (hit.getType() != HitResult.Type.MISS) {
                 Vec3 dir = ideal.subtract(from).normalize();
@@ -90,17 +108,16 @@ public final class CutsceneCamera {
             }
         }
 
-        Vec3 target = center;
+        // titik bidik naik dari kaki ke dada patung selama kamera mundur
+        Vec3 target = base().add(0, 1.6, 0).add(center.add(0, 0.5, 0).subtract(base().add(0, 1.6, 0)).scale(e));
         double dx = target.x - pos.x, dy = target.y - pos.y, dz = target.z - pos.z;
         double horiz = Math.sqrt(dx * dx + dz * dz);
-        float yaw = (float) (Math.atan2(dz, dx) * 180.0 / Math.PI) - 90.0f + yawOffset;
+        float yaw = (float) (Math.atan2(dz, dx) * 180.0 / Math.PI) - 90.0f + (float) (yawOffset * e);
         float pitch = (float) -(Math.atan2(dy, horiz) * 180.0 / Math.PI);
         return new Pose(pos, yaw, pitch);
     }
 
-    /**
-     * Proyeksikan titik dunia ke koordinat layar GUI. Mengembalikan null kalau titik berada di belakang kamera.
-     */
+    /** Proyeksikan titik dunia ke koordinat layar GUI. Mengembalikan null kalau titik di belakang kamera. */
     public static float[] project(Vec3 world, int guiWidth, int guiHeight) {
         Camera cam = Minecraft.getInstance().gameRenderer.mainCamera();
         Vec3 cp = cam.position();

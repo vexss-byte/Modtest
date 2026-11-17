@@ -1,1 +1,16 @@
-{ "variants": { "": { "model": "kontrakdewa:block/thor_statue" } } }
+{
+  "variants": {
+    "facing=north": {
+      "model": "kontrakdewa:block/thor_statue"
+    },
+    "facing=south": {
+      "model": "kontrakdewa:block/thor_statue"
+    },
+    "facing=east": {
+      "model": "kontrakdewa:block/thor_statue"
+    },
+    "facing=west": {
+      "model": "kontrakdewa:block/thor_statue"
+    }
+  }
+}

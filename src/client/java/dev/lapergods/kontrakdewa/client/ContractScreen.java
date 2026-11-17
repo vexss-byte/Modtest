@@ -24,9 +24,9 @@ import java.util.List;
 
 /**
  * Layar kontrak dengan cutscene sinematik:
- * 0-3,2 dtk kamera mengitari patung (CameraMixin menimpa kamera game, HUD disembunyikan, pemain terlihat),
- * 0-1 dtk layar menggelap dan bintang muncul, 1,4-3,6 dtk konstelasi 3D di belakang patung tergambar,
- * 3,0-3,7 dtk panel kontrak meluncur dari kanan. Spasi / Enter melompati ke akhir cutscene.
+ * 0-3,6 dtk kamera mulai dekat di kaki patung lalu mundur dan berhenti di DEPAN patung (CameraMixin menimpa kamera game,
+ * HUD disembunyikan), layar menggelap + kabut + bintang, 1,3-3,7 dtk sosok raksasa konstelasi tergambar di belakang
+ * patung, 3,3-4,0 dtk panel kontrak meluncur dari kanan. Spasi / Enter melompati ke akhir cutscene.
  */
 public class ContractScreen extends Screen {
     private static final int PANEL_BG = 0xE6100C08;
@@ -35,8 +35,8 @@ public class ContractScreen extends Screen {
     private static final int GREY = 0xFFB8B0A0;
     private static final int WHITE = 0xFFFFFFFF;
 
-    private static final double CONSTELLATION_START = 1.4, CONSTELLATION_DUR = 2.2;
-    private static final double PANEL_START = 3.0, PANEL_DUR = 0.7;
+    private static final double CONSTELLATION_START = 1.3, CONSTELLATION_DUR = 2.4;
+    private static final double PANEL_START = 3.3, PANEL_DUR = 0.7;
 
     private final God god;
     private final OpenContractPayload info;
@@ -45,6 +45,7 @@ public class ContractScreen extends Screen {
 
     private final long startNanos = System.nanoTime();
     private Vec3 statueCenter = null;
+    private net.minecraft.core.Direction statueFront = net.minecraft.core.Direction.NORTH;
     private boolean cinematic = false;
     private boolean hudWasHidden;
     private net.minecraft.client.CameraType oldCameraType;
@@ -88,10 +89,11 @@ public class ContractScreen extends Screen {
             LocalPlayer player = minecraft.player;
             statueCenter = findStatue(player);
             if (statueCenter != null) {
-                // geser arah pandang ke kanan supaya patung berada di sisi kiri layar (sisi kanan dipakai panel)
+                // geser arah pandang supaya patung berada sekitar 64% dari lebar area kosong di kiri panel
                 double fov = minecraft.options.fov().get();
                 double tanH = Math.tan(Math.toRadians(fov) / 2.0) * ((double) width / height);
-                double dxFrac = (width / 2.0 - baseX / 2.0) / (width / 2.0);
+                double targetFrac = 0.64 * baseX / width;                // posisi patung di layar (0..1)
+                double dxFrac = (0.5 - targetFrac) / 0.5;                // >0: patung di kiri tengah layar
                 float offset = (float) Math.toDegrees(Math.atan(dxFrac * tanH));
 
                 hudWasHidden = minecraft.gui.hud.isHidden();
@@ -99,7 +101,7 @@ public class ContractScreen extends Screen {
                 oldCameraType = minecraft.options.getCameraType();
                 minecraft.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_BACK); // supaya model pemain terlihat
 
-                CutsceneCamera.begin(statueCenter, player.position(), offset);
+                CutsceneCamera.begin(statueCenter, statueFront, offset);
                 cinematic = true;
                 minecraft.level.playLocalSound(player.getX(), player.getY(), player.getZ(),
                         SoundEvents.BEACON_ACTIVATE, SoundSource.AMBIENT, 0.6f, 0.6f, false);
@@ -123,7 +125,12 @@ public class ContractScreen extends Screen {
                         if (d < bestD) { bestD = d; best = m.immutable(); }
                     }
                 }
-        return best == null ? null : new Vec3(best.getX() + 0.5, best.getY() + 3.0, best.getZ() + 0.5);
+        if (best == null) return null;
+        var state = minecraft.level.getBlockState(best);
+        if (state.hasProperty(dev.lapergods.kontrakdewa.GodStatueBlock.FACING)) {
+            statueFront = state.getValue(dev.lapergods.kontrakdewa.GodStatueBlock.FACING);
+        }
+        return new Vec3(best.getX() + 0.5, best.getY() + 3.0, best.getZ() + 0.5);
     }
 
     @Override
@@ -195,8 +202,8 @@ public class ContractScreen extends Screen {
         CosmosFx.overlay(g, width, height, t, god);
         CosmosFx.stars(g, width, height, t, god);
         if (cinematic && statueCenter != null) {
-            CosmosFx.constellation3d(g, width, height, t, CONSTELLATION_START, CONSTELLATION_DUR, god,
-                    statueCenter, CutsceneCamera.finalCameraPosition());
+            CosmosFx.giant(g, width, height, t, CONSTELLATION_START, CONSTELLATION_DUR, god,
+                    statueCenter, CutsceneCamera.front(), CutsceneCamera.right());
         }
 
         // panel kontrak (meluncur masuk)
