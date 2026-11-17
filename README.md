@@ -65,6 +65,14 @@ python3 tools/bbmodel_to_geckolib.py tools/thor_statue_altar_v12_ra_style_thor_m
 ## Source Minecraft untuk referensi
 Workflow `sources.yml` (manual): tab Actions > "Minecraft Sources" > Run workflow. Menjalankan `genSources` dan mengunggah source Minecraft 26.3 yang sudah didekompilasi sebagai artifact `minecraft-sources` (ada juga `minecraft-sources-selected.zip` yang lebih kecil).
 
+## Tahap 4a: kamera sinematik (revisi cutscene)
+- **Kamera sungguhan:** `CameraMixin` menimpa posisi/arah kamera game saat cutscene aktif. Kamera mengitari patung (70 derajat, 3,2 detik, mulai dari belakang pemain supaya pemain terlihat), tidak menembus blok.
+- **HUD vanilla disembunyikan** selama cutscene dan dikembalikan saat layar ditutup; sudut kamera dikembalikan juga.
+- **Konstelasi 3D:** bidang bintang di belakang patung, menghadap posisi akhir kamera, diproyeksikan ke layar sehingga ikut berputar saat kamera mengitari. Datanya di `assets/kontrakdewa/constellations/ra.json` dan `thor.json` (satuan blok; `nodes` = titik [x,y], `edges` = pasangan indeks titik). Skala dan jarak di belakang patung: konstanta `SCALE` dan `BEHIND` di `CosmosFx.java`.
+- **Skip:** Spasi / Enter melompat ke akhir. Esc menutup.
+- Parameter kamera (radius, tinggi, sudut putar, durasi) ada di konstanta atas `CutsceneCamera.java`.
+- `tools/make_constellation.py` membuat konstelasi otomatis dari siluet model, tapi hasilnya terlalu kotak, jadi yang dipakai tetap bentuk rancangan tangan (JSON di atas).
+
 ## Rencana
 2. Weapon takdir, HUD skill (Z/C/V), Battle Mode, harga tiap dewa.
 3. Skill 1-3, Faith + persembahan harian, skill 4-6, hukuman ganti kontrak.

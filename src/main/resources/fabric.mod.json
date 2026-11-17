@@ -4,12 +4,18 @@
   "version": "${version}",
   "name": "Kontrak Dewa",
   "description": "Patung dewa (Ra, Thor), kontrak, weapon takdir, skill, Faith dan Battle Mode untuk server LAPERGODS.",
-  "authors": ["LAPERGODS"],
+  "authors": [
+    "LAPERGODS"
+  ],
   "license": "All-Rights-Reserved",
   "environment": "*",
   "entrypoints": {
-    "main": ["dev.lapergods.kontrakdewa.KontrakDewa"],
-    "client": ["dev.lapergods.kontrakdewa.client.KontrakDewaClient"]
+    "main": [
+      "dev.lapergods.kontrakdewa.KontrakDewa"
+    ],
+    "client": [
+      "dev.lapergods.kontrakdewa.client.KontrakDewaClient"
+    ]
   },
   "depends": {
     "fabricloader": ">=0.19.5",
@@ -17,5 +23,11 @@
     "java": ">=25",
     "fabric-api": "*",
     "geckolib": ">=5.5.7"
-  }
+  },
+  "mixins": [
+    {
+      "config": "kontrakdewa.client.mixins.json",
+      "environment": "client"
+    }
+  ]
 }

@@ -2,44 +2,13 @@ package dev.lapergods.kontrakdewa.client;
 
 import dev.lapergods.kontrakdewa.God;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.Random;
 
 /** Efek kosmik untuk cutscene patung: tirai gelap, bintang berkelap-kelip, dan konstelasi dewa yang tergambar perlahan. */
 final class CosmosFx {
     private CosmosFx() {}
-
-    // ---- data konstelasi (koordinat 0..1 dalam kotak; titik lalu garis penghubung berurutan) ----
-    private static final float[][] RA_NODES = {
-            {0.50f, 0.10f}, {0.38f, 0.18f}, {0.62f, 0.18f}, {0.30f, 0.34f}, {0.70f, 0.34f}, {0.50f, 0.42f},
-            {0.20f, 0.56f}, {0.80f, 0.56f}, {0.50f, 0.64f}, {0.32f, 0.84f}, {0.68f, 0.84f},
-            {0.90f, 0.14f}, {0.90f, 0.92f}, {0.80f, 0.08f},
-            // cakram matahari (cincin 8 titik) di kiri atas
-            {0.16f, 0.20f}, {0.23f, 0.12f}, {0.32f, 0.10f}, {0.38f, 0.17f}, {0.36f, 0.26f}, {0.28f, 0.32f}, {0.19f, 0.30f}, {0.12f, 0.25f},
-    };
-    private static final int[][] RA_EDGES = {
-            {0, 1}, {0, 2}, {1, 3}, {2, 4}, {3, 5}, {4, 5}, {1, 2}, {3, 6}, {4, 7}, {5, 8}, {6, 8}, {7, 8},
-            {6, 9}, {7, 10}, {9, 10}, {8, 9}, {8, 10},
-            {11, 12}, {11, 13}, {7, 11},
-            {14, 15}, {15, 16}, {16, 17}, {17, 18}, {18, 19}, {19, 20}, {20, 21}, {21, 14}, {17, 3}, {19, 3},
-    };
-
-    private static final float[][] THOR_NODES = {
-            {0.40f, 0.20f}, {0.52f, 0.20f}, {0.46f, 0.32f},          // kepala
-            {0.28f, 0.46f}, {0.62f, 0.50f}, {0.46f, 0.64f},          // bahu kiri, bahu kanan, pusat
-            {0.30f, 0.86f}, {0.64f, 0.88f}, {0.26f, 1.00f}, {0.68f, 1.00f},
-            {0.72f, 0.36f}, {0.78f, 0.22f},                           // lengan terangkat
-            {0.60f, 0.06f}, {0.92f, 0.06f}, {0.92f, 0.22f}, {0.60f, 0.22f}, // kepala palu
-            {0.76f, 0.22f},
-            {0.18f, 0.60f}, {0.34f, 0.40f},                           // lengan kiri
-    };
-    private static final int[][] THOR_EDGES = {
-            {0, 1}, {1, 2}, {2, 0}, {2, 3}, {2, 4}, {3, 5}, {4, 5}, {3, 4},
-            {3, 7}, {4, 6}, {5, 6}, {5, 7}, {6, 8}, {7, 9},
-            {4, 10}, {10, 11}, {11, 16},
-            {12, 13}, {13, 14}, {14, 15}, {15, 12}, {16, 14}, {16, 15},
-            {3, 17}, {18, 3},
-    };
 
     // ---- bintang latar ----
     private static final int STAR_COUNT = 140;
@@ -100,46 +69,88 @@ final class CosmosFx {
         }
     }
 
+    // ---- konstelasi 3D (data dari assets/kontrakdewa/constellations/<dewa>.json, satuan blok) ----
+    private record Figure(float[][] nodes, int[][] edges) {}
+    private static final java.util.Map<God, Figure> FIGURES = new java.util.EnumMap<>(God.class);
+
+    private static Figure figure(God god) {
+        return FIGURES.computeIfAbsent(god, g -> {
+            String path = "/assets/kontrakdewa/constellations/" + g.id + ".json";
+            try (java.io.InputStream in = CosmosFx.class.getResourceAsStream(path)) {
+                if (in == null) return new Figure(new float[0][0], new int[0][0]);
+                com.google.gson.JsonObject o = com.google.gson.JsonParser.parseReader(
+                        new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+                com.google.gson.JsonArray n = o.getAsJsonArray("nodes"), e = o.getAsJsonArray("edges");
+                float[][] nodes = new float[n.size()][2];
+                for (int i = 0; i < n.size(); i++) {
+                    nodes[i][0] = n.get(i).getAsJsonArray().get(0).getAsFloat();
+                    nodes[i][1] = n.get(i).getAsJsonArray().get(1).getAsFloat();
+                }
+                int[][] edges = new int[e.size()][2];
+                for (int i = 0; i < e.size(); i++) {
+                    edges[i][0] = e.get(i).getAsJsonArray().get(0).getAsInt();
+                    edges[i][1] = e.get(i).getAsJsonArray().get(1).getAsInt();
+                }
+                return new Figure(nodes, edges);
+            } catch (Exception ex) {
+                return new Figure(new float[0][0], new int[0][0]);
+            }
+        });
+    }
+
     /**
-     * Konstelasi dewa dalam kotak berukuran size (tinggi), berpusat di (cx, cy).
+     * Konstelasi dewa sebagai bidang 3D di belakang patung, menghadap posisi akhir kamera, lalu diproyeksikan ke layar.
+     * Karena kamera mengitari patung, bidang ini tampak berputar dan menjadi tegak lurus tepat saat kamera berhenti.
      * start/dur dalam detik: garis digambar berurutan, lalu titik berdenyut.
      */
-    static void constellation(GuiGraphicsExtractor g, int cx, int cy, int size, double t, double start, double dur, God god) {
-        float[][] nodes = god == God.RA ? RA_NODES : THOR_NODES;
-        int[][] edges = god == God.RA ? RA_EDGES : THOR_EDGES;
+    static void constellation3d(GuiGraphicsExtractor g, int w, int h, double t, double start, double dur, God god,
+                                Vec3 statueCenter, Vec3 finalCam) {
+        Figure f = figure(god);
+        if (f.nodes.length == 0) return;
         float prog = (float) ((t - start) / dur);
         if (prog <= 0) return;
         prog = Math.min(1f, prog);
 
-        int boxW = (int) (size * 0.8f);
-        int x0 = cx - boxW / 2, y0 = cy - size / 2;
-        int core = argb(1f, lineRgb(god)), glow = argb(0.16f, glowRgb(god));
+        // bidang menghadap kamera akhir, digeser ke belakang patung
+        Vec3 facing = new Vec3(finalCam.x - statueCenter.x, 0, finalCam.z - statueCenter.z);
+        facing = facing.lengthSqr() < 1e-6 ? new Vec3(0, 0, 1) : facing.normalize();
+        Vec3 right = new Vec3(facing.z, 0, -facing.x);
+        Vec3 anchor = statueCenter.subtract(0, 3.0, 0).subtract(facing.scale(BEHIND));
 
-        float total = edges.length * prog;
-        for (int i = 0; i < edges.length; i++) {
+        Vec3[] world = new Vec3[f.nodes.length];
+        for (int i = 0; i < world.length; i++) {
+            world[i] = anchor.add(right.scale(f.nodes[i][0] * SCALE)).add(0, f.nodes[i][1] * SCALE, 0);
+        }
+
+        int core = argb(1f, lineRgb(god)), glow = argb(0.16f, glowRgb(god));
+        float total = f.edges.length * prog;
+        boolean[] reached = new boolean[world.length];
+        for (int i = 0; i < f.edges.length; i++) {
             float local = Math.max(0f, Math.min(1f, total - i));
             if (local <= 0) break;
-            float[] a = nodes[edges[i][0]], b = nodes[edges[i][1]];
-            int ax = x0 + (int) (a[0] * boxW), ay = y0 + (int) (a[1] * size);
-            int bx = x0 + (int) (b[0] * boxW), by = y0 + (int) (b[1] * size);
-            line(g, ax, ay, ax + (int) ((bx - ax) * local), ay + (int) ((by - ay) * local), core, glow);
+            int ia = f.edges[i][0], ib = f.edges[i][1];
+            reached[ia] = true;
+            if (local >= 1f) reached[ib] = true;
+            Vec3 b = world[ia].add(world[ib].subtract(world[ia]).scale(local));
+            float[] pa = CutsceneCamera.project(world[ia], w, h), pb = CutsceneCamera.project(b, w, h);
+            if (pa == null || pb == null) continue;
+            line(g, (int) pa[0], (int) pa[1], (int) pb[0], (int) pb[1], core, glow);
         }
-
-        // titik (muncul saat garis yang menyentuhnya sudah mulai tergambar)
-        boolean[] reached = new boolean[nodes.length];
-        for (int i = 0; i < edges.length && i < total; i++) {
-            reached[edges[i][0]] = true;
-            if (total - i >= 1f) reached[edges[i][1]] = true;
-        }
-        for (int i = 0; i < nodes.length; i++) {
+        for (int i = 0; i < world.length; i++) {
             if (!reached[i]) continue;
-            int nx = x0 + (int) (nodes[i][0] * boxW), ny = y0 + (int) (nodes[i][1] * size);
+            float[] p = CutsceneCamera.project(world[i], w, h);
+            if (p == null) continue;
+            int nx = (int) p[0], ny = (int) p[1];
             float pulse = 0.75f + 0.25f * (float) Math.sin(t * 3.0 + i);
             g.fill(nx - 3, ny - 3, nx + 4, ny + 4, argb(0.18f * pulse, glowRgb(god)));
             g.fill(nx - 2, ny - 2, nx + 3, ny + 3, argb(0.35f * pulse, lineRgb(god)));
             g.fill(nx - 1, ny - 1, nx + 2, ny + 2, 0xFFFFFFFF);
         }
     }
+
+    // penyetelan posisi konstelasi
+    private static final double SCALE = 1.15;   // pembesaran figur
+    private static final double BEHIND = 4.0;   // jarak bidang di belakang patung (blok)
 
     private static void line(GuiGraphicsExtractor g, int x1, int y1, int x2, int y2, int core, int glow) {
         int dx = x2 - x1, dy = y2 - y1;

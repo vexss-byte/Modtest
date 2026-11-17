@@ -23,9 +23,10 @@ import net.minecraft.world.phys.Vec3;
 import java.util.List;
 
 /**
- * Layar kontrak dengan cutscene pembuka:
- * 0-1 dtk kamera menengok ke patung + layar menggelap, 0,2-1 dtk bintang muncul,
- * 0,6-2,6 dtk konstelasi dewa tergambar, 2,0-2,7 dtk panel kontrak meluncur dari kanan.
+ * Layar kontrak dengan cutscene sinematik:
+ * 0-3,2 dtk kamera mengitari patung (CameraMixin menimpa kamera game, HUD disembunyikan, pemain terlihat),
+ * 0-1 dtk layar menggelap dan bintang muncul, 1,4-3,6 dtk konstelasi 3D di belakang patung tergambar,
+ * 3,0-3,7 dtk panel kontrak meluncur dari kanan. Spasi / Enter melompati ke akhir cutscene.
  */
 public class ContractScreen extends Screen {
     private static final int PANEL_BG = 0xE6100C08;
@@ -34,9 +35,8 @@ public class ContractScreen extends Screen {
     private static final int GREY = 0xFFB8B0A0;
     private static final int WHITE = 0xFFFFFFFF;
 
-    private static final double CAMERA_TIME = 1.0;
-    private static final double CONSTELLATION_START = 0.6, CONSTELLATION_DUR = 2.0;
-    private static final double PANEL_START = 2.0, PANEL_DUR = 0.7;
+    private static final double CONSTELLATION_START = 1.4, CONSTELLATION_DUR = 2.2;
+    private static final double PANEL_START = 3.0, PANEL_DUR = 0.7;
 
     private final God god;
     private final OpenContractPayload info;
@@ -44,9 +44,10 @@ public class ContractScreen extends Screen {
     private final boolean hasOther;
 
     private final long startNanos = System.nanoTime();
-    private float origYaw, origPitch;
-    private boolean rotationSaved = false;
     private Vec3 statueCenter = null;
+    private boolean cinematic = false;
+    private boolean hudWasHidden;
+    private net.minecraft.client.CameraType oldCameraType;
     private boolean chimed = false;
 
     private int px, py, pw, ph;   // px = posisi panel saat ini (termasuk geser)
@@ -62,7 +63,7 @@ public class ContractScreen extends Screen {
     }
 
     private double t() {
-        return (System.nanoTime() - startNanos) / 1_000_000_000.0;
+        return cinematic ? CutsceneCamera.elapsed() : (System.nanoTime() - startNanos) / 1_000_000_000.0;
     }
 
     @Override
@@ -83,15 +84,23 @@ public class ContractScreen extends Screen {
         signBtn.active = !signedHere && info.lockMinutes() <= 0;
         addRenderableWidget(signBtn);
 
-        if (minecraft != null && minecraft.player != null && minecraft.level != null) {
+        if (!cinematic && minecraft != null && minecraft.player != null && minecraft.level != null) {
             LocalPlayer player = minecraft.player;
-            if (!rotationSaved) {
-                origYaw = player.getYRot();
-                origPitch = player.getXRot();
-                rotationSaved = true;
-            }
             statueCenter = findStatue(player);
             if (statueCenter != null) {
+                // geser arah pandang ke kanan supaya patung berada di sisi kiri layar (sisi kanan dipakai panel)
+                double fov = minecraft.options.fov().get();
+                double tanH = Math.tan(Math.toRadians(fov) / 2.0) * ((double) width / height);
+                double dxFrac = (width / 2.0 - baseX / 2.0) / (width / 2.0);
+                float offset = (float) Math.toDegrees(Math.atan(dxFrac * tanH));
+
+                hudWasHidden = minecraft.gui.hud.isHidden();
+                if (!hudWasHidden) minecraft.gui.hud.toggle();
+                oldCameraType = minecraft.options.getCameraType();
+                minecraft.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_BACK); // supaya model pemain terlihat
+
+                CutsceneCamera.begin(statueCenter, player.position(), offset);
+                cinematic = true;
                 minecraft.level.playLocalSound(player.getX(), player.getY(), player.getZ(),
                         SoundEvents.BEACON_ACTIVATE, SoundSource.AMBIENT, 0.6f, 0.6f, false);
             }
@@ -124,25 +133,6 @@ public class ContractScreen extends Screen {
         LocalPlayer p = minecraft.player;
         double t = t();
 
-        // Kamera menengok ke patung; sedikit digeser supaya patung berada di sisi kiri (kanan layar dipakai panel).
-        double eased = ease(Math.min(1.0, t / CAMERA_TIME));
-        Vec3 eye = p.getEyePosition();
-        double dx = statueCenter.x - eye.x, dy = statueCenter.y - eye.y, dz = statueCenter.z - eye.z;
-        double horiz = Math.sqrt(dx * dx + dz * dz);
-        float yawToStatue = (float) (Math.atan2(dz, dx) * 180.0 / Math.PI) - 90.0f;
-        float pitchToStatue = (float) -(Math.atan2(dy, horiz) * 180.0 / Math.PI);
-        pitchToStatue = Math.max(-60f, Math.min(30f, pitchToStatue));
-
-        double fov = minecraft.options.fov().get();
-        double tanH = Math.tan(Math.toRadians(fov) / 2.0) * ((double) width / height);
-        double dxFrac = (width / 2.0 - baseX / 2.0) / (width / 2.0); // seberapa jauh pusat sisi kiri dari tengah layar
-        float offset = (float) Math.toDegrees(Math.atan(dxFrac * tanH));
-        float targetYaw = yawToStatue + offset;
-
-        float yawDiff = wrap(targetYaw - origYaw);
-        p.setYRot(origYaw + (float) (yawDiff * eased));
-        p.setXRot(origPitch + (float) ((pitchToStatue - origPitch) * eased));
-
         // Partikel naik di sekeliling patung
         if (t > 0.3 && t < 4.5) {
             for (int i = 0; i < 3; i++) {
@@ -163,13 +153,6 @@ public class ContractScreen extends Screen {
         }
     }
 
-    private static float wrap(float deg) {
-        deg = deg % 360f;
-        if (deg >= 180f) deg -= 360f;
-        if (deg < -180f) deg += 360f;
-        return deg;
-    }
-
     private static double ease(double x) {
         double c = Math.max(0, Math.min(1, x));
         return 1 - Math.pow(1 - c, 3);
@@ -178,10 +161,31 @@ public class ContractScreen extends Screen {
     @Override
     public void removed() {
         super.removed();
-        if (rotationSaved && minecraft != null && minecraft.player != null) {
-            minecraft.player.setYRot(origYaw);
-            minecraft.player.setXRot(origPitch);
+        if (cinematic) {
+            CutsceneCamera.end();
+            cinematic = false;
+            if (minecraft != null) {
+                if (!hudWasHidden && minecraft.gui.hud.isHidden()) minecraft.gui.hud.toggle();
+                if (oldCameraType != null) minecraft.options.setCameraType(oldCameraType);
+            }
         }
+    }
+
+    @Override
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        // Spasi / Enter: lompat ke akhir cutscene (panel langsung tampil)
+        if (cinematic && elapsedNow() < PANEL_START + PANEL_DUR
+                && (event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_SPACE
+                || event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_RETURN)) {
+            CutsceneCamera.skipTo(CutsceneCamera.ORBIT_SECONDS);
+            CutsceneCamera.skipTo(PANEL_START + PANEL_DUR);
+            return true;
+        }
+        return super.keyPressed(event);
+    }
+
+    private double elapsedNow() {
+        return t();
     }
 
     @Override
@@ -190,8 +194,10 @@ public class ContractScreen extends Screen {
         double t = t();
         CosmosFx.overlay(g, width, height, t, god);
         CosmosFx.stars(g, width, height, t, god);
-        int size = Math.min((int) (height * 0.92), (int) (baseX * 0.95 / 0.8));
-        CosmosFx.constellation(g, baseX / 2, height / 2, size, t, CONSTELLATION_START, CONSTELLATION_DUR, god);
+        if (cinematic && statueCenter != null) {
+            CosmosFx.constellation3d(g, width, height, t, CONSTELLATION_START, CONSTELLATION_DUR, god,
+                    statueCenter, CutsceneCamera.finalCameraPosition());
+        }
 
         // panel kontrak (meluncur masuk)
         double panelE = ease((t - PANEL_START) / PANEL_DUR);
