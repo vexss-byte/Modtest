@@ -9,7 +9,7 @@ import json, math, sys, os
 
 class Fig:
     def __init__(self):
-        self.stars, self.lines, self.eyes = [], [], []
+        self.stars, self.lines, self.eyes, self.polys = [], [], [], []
     def n(self, u, v, w=0.0):
         p = [round(u, 3), round(v, 3), round(w, 3)]
         for i, q in enumerate(self.stars):
@@ -27,15 +27,18 @@ class Fig:
         for i, (x, y, z) in enumerate([(x0,y0,z0),(x1,y0,z0),(x1,y1,z0),(x0,y1,z0),(x0,y0,z1),(x1,y0,z1),(x1,y1,z1),(x0,y1,z1)]):
             c[i] = self.n(x, y, z)
         for a, b in [(0,1),(1,2),(2,3),(3,0),(4,5),(5,6),(6,7),(7,4),(0,4),(1,5),(2,6),(3,7)]: self.l(c[a], c[b])
+        return c
     def ring(self, cu, cv, cw, r, n):
         ids = [self.n(cu+math.cos(2*math.pi*i/n)*r, cv+math.sin(2*math.pi*i/n)*r, cw) for i in range(n)]
         for i in range(n): self.l(ids[i], ids[(i+1) % n])
         return ids
+    def poly(self, *ids): self.polys.append(list(ids))
     def eye(self, u0, v0, u1, v1, w): self.eyes.append([round(u0,3), round(v0,3), round(u1,3), round(v1,3), round(w,3)])
 
 def body(f, head_v=5.55):
     # kepala kotak + mata
-    f.box(0, head_v, 0, 1.5, 1.4, 1.5)
+    hb = f.box(0, head_v, 0, 1.5, 1.4, 1.5)
+    f.poly(hb[4], hb[5], hb[6], hb[7])
     f.eye(-0.55, head_v+0.05, -0.12, head_v+0.2, 0.76); f.eye(0.12, head_v+0.05, 0.55, head_v+0.2, 0.76)
     neck = f.n(0, 4.85, 0)
     f.l(f.n(0, head_v-0.7, 0), neck)
@@ -43,6 +46,7 @@ def body(f, head_v=5.55):
     C, P = f.n(0, 3.5), f.n(0, 2.2)
     HL, HR = f.n(-0.85, 2.1), f.n(0.85, 2.1)
     for a, b in [(neck,SL),(neck,SR),(SL,SR),(neck,C),(SL,C),(SR,C),(C,P),(SL,HL),(SR,HR),(P,HL),(P,HR),(HL,HR)]: f.l(a, b)
+    f.poly(SL, SR, HR, HL)
     return dict(SL=SL, SR=SR, HL=HL, HR=HR, C=C, P=P)
 
 def thor():
@@ -50,12 +54,14 @@ def thor():
     # kaki
     kl, kr, fl, fr = f.n(-0.9, 1.0), f.n(0.9, 1.0), f.n(-1.0, 0.0), f.n(1.0, 0.0)
     f.l(b["HL"], kl); f.l(kl, fl); f.l(b["HR"], kr); f.l(kr, fr)
+    f.poly(b["HL"], b["P"], b["HR"], kr, kl)
     # lengan kiri turun
     el = f.n(-2.4, 3.2); f.l(b["SL"], el); f.l(el, f.n(-1.9, 2.0))
     # lengan kanan terangkat memegang palu
     er = f.n(2.7, 5.3); hand = f.n(2.9, 6.6)
     f.l(b["SR"], er); f.l(er, hand)
-    f.box(2.9, 7.9, 0, 2.4, 1.0, 1.0)
+    hm = f.box(2.9, 7.9, 0, 2.4, 1.0, 1.0)
+    f.poly(hm[4], hm[5], hm[6], hm[7])
     f.l(hand, f.n(2.9, 7.4, 0))
     # lambang palu (salib kecil di muka palu)
     f.path((2.65, 7.95, 0.52), (3.15, 7.95, 0.52)); f.path((2.9, 7.65, 0.52), (2.9, 8.2, 0.52))
@@ -71,6 +77,8 @@ def ra():
     # jubah melebar
     hl, hr = f.n(-1.7, 0.0), f.n(1.7, 0.0)
     f.l(b["HL"], hl); f.l(b["HR"], hr); f.l(hl, hr); f.l(b["P"], f.n(0, 0.0))
+    f.poly(b["HL"], b["HR"], hr, hl)
+    f.poly(*ids)
     # lengan kiri turun
     el = f.n(-2.3, 3.2); f.l(b["SL"], el); f.l(el, f.n(-1.7, 2.3))
     # lengan kanan memegang tongkat; tongkat tinggi dengan kait
@@ -81,8 +89,8 @@ def ra():
 
 def save(f, god):
     out = os.path.join(os.path.dirname(__file__), "..", "src/main/resources/assets/kontrakdewa/constellations", god + ".json")
-    json.dump({"stars": f.stars, "lines": f.lines, "eyes": f.eyes}, open(out, "w"), separators=(",", ":"))
-    print(god, "bintang:", len(f.stars), "garis:", len(f.lines), "mata:", len(f.eyes))
+    json.dump({"stars": f.stars, "lines": f.lines, "eyes": f.eyes, "polys": f.polys}, open(out, "w"), separators=(",", ":"))
+    print(god, "bintang:", len(f.stars), "garis:", len(f.lines), "mata:", len(f.eyes), "poligon:", len(f.polys))
 
 if __name__ == "__main__":
     figs = {"ra": ra(), "thor": thor()}

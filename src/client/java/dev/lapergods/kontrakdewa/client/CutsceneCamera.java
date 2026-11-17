@@ -18,12 +18,12 @@ import org.joml.Vector4f;
 public final class CutsceneCamera {
     // ---- penyetelan ----
     public static final double ORBIT_SECONDS = 3.6;
-    private static final double START_FRONT = 3.4;     // jarak awal dari patung (blok), di depan
-    private static final double START_SIDE = -2.2;     // geser awal ke kiri kamera
-    private static final double START_HEIGHT = 1.0;    // tinggi awal dari dasar patung
-    private static final double FINAL_FRONT = 13.0;    // jarak akhir di depan patung
-    private static final double FINAL_HEIGHT = 1.8;    // tinggi akhir
-    private static final double ARC = 2.5;             // ayunan samping di tengah gerakan
+    private static final double START_FRONT = 2.8;     // jarak awal dari patung (blok), di depan
+    private static final double START_SIDE = -1.8;     // geser awal ke kiri kamera
+    private static final double START_HEIGHT = 0.8;    // tinggi awal dari dasar patung
+    private static final double FINAL_FRONT = 7.5;    // jarak akhir di depan patung
+    private static final double FINAL_HEIGHT = 1.3;    // tinggi akhir
+    private static final double ARC = 2.0;             // ayunan samping di tengah gerakan
     /** Kalau ternyata depan model terbalik di game, ubah ke true (memutar arah "depan" 180 derajat). */
     public static final boolean FLIP_FRONT = false;
 
@@ -82,20 +82,25 @@ public final class CutsceneCamera {
         return center.subtract(0, 3.0, 0);
     }
 
+    /** Dorongan pelan maju setelah kamera berhenti (blok, maksimum). */
+    private static final double PUSH_IN = 0.9;
+
     private static Vec3 idealPosition(double e) {
         Vec3 right = right();
         Vec3 base = base();
         Vec3 start = base.add(front.scale(START_FRONT)).add(right.scale(START_SIDE)).add(0, START_HEIGHT, 0);
         Vec3 end = base.add(front.scale(FINAL_FRONT)).add(0, FINAL_HEIGHT, 0);
-        Vec3 p = start.add(end.subtract(start).scale(e));
-        return p.add(right.scale(ARC * Math.sin(Math.PI * e)));
+        Vec3 p = start.add(end.subtract(start).scale(Math.min(1.0, e)));
+        if (e > 1.0) p = p.subtract(front.scale(Math.min(PUSH_IN, (e - 1.0) * PUSH_IN)));
+        return p.add(right.scale(ARC * Math.sin(Math.PI * Math.min(1.0, e))));
     }
 
     public static Pose pose() {
         if (!active) return null;
         Minecraft mc = Minecraft.getInstance();
-        double e = ease(elapsed() / ORBIT_SECONDS);
-        Vec3 ideal = idealPosition(e);
+        double raw = elapsed() / ORBIT_SECONDS;
+        double e = ease(Math.min(1.0, raw));
+        Vec3 ideal = idealPosition(raw > 1.0 ? 1.0 + Math.min(1.0, (raw - 1.0) / 1.5) : e);
         Vec3 pos = ideal;
 
         // Jangan tembus blok: potong jarak kalau ada penghalang antara patung dan posisi ideal.

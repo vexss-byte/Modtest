@@ -41,10 +41,31 @@ final class CosmosFx {
         return god == God.RA ? 0xFF9A2A : 0x3F7FE0;
     }
 
-    /** Tirai gelap + vignette. t = detik sejak cutscene mulai. */
-    static void overlay(GuiGraphicsExtractor g, int w, int h, double t, God god) {
-        float a = (float) Math.min(1.0, t / 0.9) * 0.62f;
-        g.fill(0, 0, w, h, argb(a, tintRgb(god)));
+    /**
+     * Tirai gelap + kabut + vignette. spot = {cx, cy, rx, ry} posisi/ukuran patung di layar: bagian itu dibiarkan terang
+     * (patung tetap terlihat jelas), sekelilingnya makin gelap. null = gelap merata.
+     */
+    static void overlay(GuiGraphicsExtractor g, int w, int h, double t, God god, float[] spot) {
+        float fade = (float) Math.min(1.0, t / 0.9);
+        int tint = tintRgb(god);
+        if (spot == null) {
+            g.fill(0, 0, w, h, argb(fade * 0.62f, tint));
+        } else {
+            float inner = 0.06f * fade, outer = 0.78f * fade;
+            g.fill(0, 0, w, h, argb(inner, tint));
+            int steps = 14;
+            float each = (outer - inner) / steps;
+            for (int k = 0; k < steps; k++) {
+                float grow = 1f + 0.30f * k;
+                int x0 = Math.max(0, (int) (spot[0] - spot[2] * grow)), x1 = Math.min(w, (int) (spot[0] + spot[2] * grow));
+                int y0 = Math.max(0, (int) (spot[1] - spot[3] * grow)), y1 = Math.min(h, (int) (spot[1] + spot[3] * grow));
+                int c = argb(each, tint);
+                g.fill(0, 0, w, y0, c);          // atas
+                g.fill(0, y1, w, h, c);          // bawah
+                g.fill(0, y0, x0, y1, c);        // kiri
+                g.fill(x1, y0, w, y1, c);        // kanan
+            }
+        }
         // kabut tipis di dasar layar (seperti awan gelap di sekitar patung pada referensi)
         int fogRgb = god == God.RA ? 0x3A2A18 : 0x2A3550;
         float fogA = (float) Math.min(1.0, t / 1.6);
@@ -55,7 +76,7 @@ final class CosmosFx {
         // vignette: pita gelap di tepi layar
         int bands = 8;
         for (int k = 0; k < bands; k++) {
-            float va = (float) Math.min(1.0, t / 0.9) * 0.07f;
+            float va = fade * 0.07f;
             int bw = (int) (w * 0.012f * (bands - k)), bh = (int) (h * 0.012f * (bands - k));
             int c = argb(va, 0x000000);
             g.fill(0, 0, bw, h, c);
@@ -77,18 +98,18 @@ final class CosmosFx {
     }
 
     // ---- sosok raksasa konstelasi (data: assets/kontrakdewa/constellations/<dewa>.json; dibuat tools/make_giant.py) ----
-    private record Figure(float[][] stars, int[][] lines, float[][] eyes) {}
+    private record Figure(float[][] stars, int[][] lines, float[][] eyes, int[][] polys) {}
     private static final java.util.Map<God, Figure> FIGURES = new java.util.EnumMap<>(God.class);
 
     private static Figure figure(God god) {
         return FIGURES.computeIfAbsent(god, g -> {
-            Figure empty = new Figure(new float[0][0], new int[0][0], new float[0][0]);
+            Figure empty = new Figure(new float[0][0], new int[0][0], new float[0][0], new int[0][0]);
             String path = "/assets/kontrakdewa/constellations/" + g.id + ".json";
             try (java.io.InputStream in = CosmosFx.class.getResourceAsStream(path)) {
                 if (in == null) return empty;
                 com.google.gson.JsonObject o = com.google.gson.JsonParser.parseReader(
                         new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
-                return new Figure(floats(o.getAsJsonArray("stars"), 3), ints(o.getAsJsonArray("lines")), floats(o.getAsJsonArray("eyes"), 5));
+                return new Figure(floats(o.getAsJsonArray("stars"), 3), ints(o.getAsJsonArray("lines")), floats(o.getAsJsonArray("eyes"), 5), polys(o.getAsJsonArray("polys")));
             } catch (Exception ex) {
                 return empty;
             }
@@ -101,6 +122,17 @@ final class CosmosFx {
         return r;
     }
 
+    private static int[][] polys(com.google.gson.JsonArray a) {
+        if (a == null) return new int[0][0];
+        int[][] r = new int[a.size()][];
+        for (int i = 0; i < a.size(); i++) {
+            com.google.gson.JsonArray p = a.get(i).getAsJsonArray();
+            r[i] = new int[p.size()];
+            for (int j = 0; j < p.size(); j++) r[i][j] = p.get(j).getAsInt();
+        }
+        return r;
+    }
+
     private static int[][] ints(com.google.gson.JsonArray a) {
         int[][] r = new int[a.size()][2];
         for (int i = 0; i < a.size(); i++) for (int j = 0; j < 2; j++) r[i][j] = a.get(i).getAsJsonArray().get(j).getAsInt();
@@ -108,9 +140,10 @@ final class CosmosFx {
     }
 
     // penyetelan sosok raksasa
-    private static final double SCALE = 2.3;       // pembesaran terhadap ukuran patung
-    private static final double SHIFT_LEFT = 4.5;  // geser ke kiri layar dari patung (blok)
-    private static final double BEHIND = 5.0;      // jarak di belakang patung (blok)
+    private static final double SCALE = 1.4;       // pembesaran terhadap ukuran patung
+    private static final double SHIFT_LEFT = 2.4;  // geser ke kiri layar dari patung (blok)
+    private static final double BEHIND = 3.0;      // jarak di belakang patung (blok)
+    private static final double LIFT = -0.4;       // geser vertikal figur (blok)
 
     /**
      * Sosok raksasa konstelasi: figur 3D (kepala kotak bermata putih, palu/tongkat terangkat) berdiri di belakang patung,
@@ -125,10 +158,22 @@ final class CosmosFx {
         prog = Math.min(1f, prog);
 
         Vec3 base = statueCenter.subtract(0, 3.0, 0);
-        Vec3 anchor = base.subtract(right.scale(SHIFT_LEFT)).subtract(front.scale(BEHIND));
+        Vec3 anchor = base.subtract(right.scale(SHIFT_LEFT)).subtract(front.scale(BEHIND)).add(0, LIFT, 0);
         Vec3[] world = new Vec3[f.stars.length];
         for (int i = 0; i < world.length; i++) {
             world[i] = anchor.add(right.scale(f.stars[i][0] * SCALE)).add(0, f.stars[i][1] * SCALE, 0).add(front.scale(f.stars[i][2] * SCALE));
+        }
+
+        // awan cahaya: poligon tubuh/kepala/senjata diisi tipis (muncul bersamaan dengan garis)
+        float cloud = Math.min(1f, prog * 1.6f);
+        for (int[] poly : f.polys) {
+            float[][] pts = new float[poly.length][];
+            boolean ok = true;
+            for (int i = 0; i < poly.length; i++) {
+                pts[i] = CutsceneCamera.project(world[poly[i]], w, h);
+                if (pts[i] == null) { ok = false; break; }
+            }
+            if (ok) fillPolygon(g, pts, argb(0.075f * cloud, glowRgb(god)));
         }
 
         int core = argb(0.95f, lineRgb(god));
@@ -183,10 +228,10 @@ final class CosmosFx {
     private static void glowLine(GuiGraphicsExtractor g, int x1, int y1, int x2, int y2, int rgb) {
         int dx = x2 - x1, dy = y2 - y1, steps = Math.max(Math.abs(dx), Math.abs(dy));
         if (steps == 0) return;
-        int c = argb(0.05f, rgb);
-        for (int i = 0; i <= steps; i += 3) {
+        int c = argb(0.035f, rgb);
+        for (int i = 0; i <= steps; i += 4) {
             int x = x1 + dx * i / steps, y = y1 + dy * i / steps;
-            g.fill(x - 4, y - 4, x + 5, y + 5, c);
+            g.fill(x - 7, y - 7, x + 8, y + 8, c);
         }
     }
 
@@ -195,7 +240,24 @@ final class CosmosFx {
         if (steps == 0) return;
         for (int i = 0; i <= steps; i++) {
             int x = x1 + dx * i / steps, y = y1 + dy * i / steps;
-            g.fill(x, y, x + 1, y + 1, core);
+            g.fill(x, y, x + 2, y + 2, core);
+        }
+    }
+
+    /** Isi poligon (garis pindai) dengan satu warna transparan. */
+    private static void fillPolygon(GuiGraphicsExtractor g, float[][] p, int color) {
+        float minY = Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+        for (float[] v : p) { minY = Math.min(minY, v[1]); maxY = Math.max(maxY, v[1]); }
+        for (int y = (int) minY; y <= (int) maxY; y += 2) {
+            float xa = Float.MAX_VALUE, xb = -Float.MAX_VALUE;
+            for (int i = 0; i < p.length; i++) {
+                float[] a = p[i], b = p[(i + 1) % p.length];
+                if ((a[1] <= y && b[1] > y) || (b[1] <= y && a[1] > y)) {
+                    float x = a[0] + (y - a[1]) / (b[1] - a[1]) * (b[0] - a[0]);
+                    xa = Math.min(xa, x); xb = Math.max(xb, x);
+                }
+            }
+            if (xa < xb) g.fill((int) xa, y, (int) xb, y + 2, color);
         }
     }
 

@@ -199,7 +199,12 @@ public class ContractScreen extends Screen {
     public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
         // Tidak memanggil super: latar dunia dibiarkan terlihat, lalu kita tindih sendiri dengan efek kosmik.
         double t = t();
-        CosmosFx.overlay(g, width, height, t, god);
+        float[] spot = null;
+        if (cinematic && statueCenter != null) {
+            float[] sc = CutsceneCamera.project(statueCenter.add(0, 0.2, 0), width, height);
+            if (sc != null) spot = new float[]{sc[0], sc[1], height * 0.26f, height * 0.42f};
+        }
+        CosmosFx.overlay(g, width, height, t, god, spot);
         CosmosFx.stars(g, width, height, t, god);
         if (cinematic && statueCenter != null) {
             CosmosFx.giant(g, width, height, t, CONSTELLATION_START, CONSTELLATION_DUR, god,
