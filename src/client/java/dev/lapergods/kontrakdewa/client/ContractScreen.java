@@ -35,6 +35,13 @@ import java.util.List;
  * Spasi / Enter melompati cutscene. Esc menutup.
  */
 public class ContractScreen extends Screen {
+    /** true selama layar kontrak terbuka (dipakai CameraMixin; tidak bergantung API Minecraft.screen). */
+    private static volatile boolean open = false;
+
+    public static boolean isOpen() {
+        return open;
+    }
+
     // ---- timeline (detik) ----
     private static final double MANIFEST_START = 5.0, MANIFEST_END = 6.8;
     private static final double PANEL_START = 6.8, PANEL_DUR = 1.0;
@@ -85,6 +92,7 @@ public class ContractScreen extends Screen {
 
     @Override
     protected void init() {
+        open = true;
         pw = Math.max(210, Math.min(300, (int) (width * 0.42)));
         ph = height - 24;
         baseX = width - pw - 12;
@@ -189,6 +197,7 @@ public class ContractScreen extends Screen {
 
     @Override
     public void removed() {
+        open = false;
         super.removed();
         CutsceneCamera.stop();
         cinematic = false;

@@ -29,7 +29,7 @@ public abstract class CameraMixin {
         if (!CutsceneCamera.isActive()) return;
         try {
             Minecraft mc = Minecraft.getInstance();
-            if (mc.level == null || mc.player == null || !(mc.screen instanceof ContractScreen)) {
+            if (mc.level == null || mc.player == null || !ContractScreen.isOpen()) {
                 CutsceneCamera.stop();
                 return;
             }
