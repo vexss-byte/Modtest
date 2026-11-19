@@ -26,6 +26,8 @@ public final class ModConfig {
     public int weaponClaimCooldownSeconds = 600;
     /** Skill boleh menyalakan api / merusak blok. Matikan kalau server tidak mau griefing. */
     public boolean allowBlockDamage = true;
+    /** Shader GLSL untuk cutscene patung (langit badai). Matikan kalau GPU lemah atau ada masalah tampilan; efek sederhana tetap dipakai. */
+    public boolean cutsceneShader = true;
     public Map<String, SkillCfg> skills = new LinkedHashMap<>();
 
     public static final class SkillCfg {

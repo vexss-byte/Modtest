@@ -22,6 +22,7 @@ public class KontrakDewaClient implements ClientModInitializer {
         BlockEntityRenderers.register(ModBlocks.THOR_BE, ctx -> new GodStatueRenderer(ctx, ModBlocks.THOR_BE));
 
         ModKeys.init();
+        ShaderFx.init(); // mendaftarkan pipeline shader cutscene
 
         // Weapon di punggung pemain (saat tidak Battle Mode)
         LivingEntityRenderLayerRegistrationCallback.EVENT.register((entityType, entityRenderer, registrationHelper, context) -> {

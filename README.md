@@ -65,13 +65,34 @@ python3 tools/bbmodel_to_geckolib.py tools/thor_statue_altar_v12_ra_style_thor_m
 ## Source Minecraft untuk referensi
 Workflow `sources.yml` (manual): tab Actions > "Minecraft Sources" > Run workflow. Menjalankan `genSources` dan mengunggah source Minecraft 26.3 yang sudah didekompilasi sebagai artifact `minecraft-sources` (ada juga `minecraft-sources-selected.zip` yang lebih kecil).
 
-## Tahap 4a (revisi 2): kamera depan + sosok raksasa konstelasi
-- **Arah depan patung:** blok patung sekarang punya properti `facing` (menghadap pemain saat dipasang) dan model GeckoLib ikut berputar. Patung lama tanpa properti dianggap menghadap utara.
-- **Kamera:** mulai dekat dan rendah di kaki patung (di depan), lalu mundur sambil mengayun dan berhenti di DEPAN patung (13 blok, setinggi mata). Parameter ada di konstanta `CutsceneCamera.java` (`FINAL_FRONT`, `FINAL_HEIGHT`, `ARC`, dst.). Kalau di game ternyata yang terlihat adalah punggung patung, ubah `FLIP_FRONT = true`.
-- **Konstelasi:** sosok raksasa (kepala kotak bermata putih; Thor mengangkat palu, Ra bercakram matahari memegang tongkat) berdiri di belakang patung, bergeser ke kiri layar, tergambar garis demi garis dengan cahaya. Penyetelan ukuran/posisi: `SCALE`, `SHIFT_LEFT`, `BEHIND` di `CosmosFx.java`.
-- **Sorotan:** area patung dibiarkan terang sementara sekelilingnya digelapkan (mirip referensi); sosok raksasa punya "awan" cahaya (poligon tubuh/kepala/senjata terisi tipis) dan garis 2 piksel. Setelan: `SCALE`, `SHIFT_LEFT`, `BEHIND`, `LIFT` di `CosmosFx.java`; ukuran sorotan di `ContractScreen.extractBackground`.
-- **Bentuk sosok** dibuat oleh `tools/make_giant.py` (titik 3D, garis, mata). Ubah definisinya lalu jalankan ulang: `python3 tools/make_giant.py preview` (menghasilkan JSON di `assets/kontrakdewa/constellations/` + gambar pratinjau).
-- Tambahan atmosfer: kabut tipis di dasar layar, tirai gelap, bintang. HUD vanilla disembunyikan; Spasi/Enter melompat ke akhir.
+## Tahap 4b: cutscene sinematik 8 detik (revisi besar)
+Satu jam (`CutsceneCamera.elapsed()`) mengatur kamera, efek, konstelasi, dan panel:
+| Detik | Adegan |
+|---|---|
+| 0-1,5 | Pembuka: patung utuh dari depan-kiri, dolly masuk pelan (peralihan mulus dari kamera pemain) |
+| 1,5-3,5 | Orbit halus ke depan-kanan sambil naik sedikit |
+| 3,5-5,0 | Shot lebar (crane naik lalu turun menetap di depan patung); layar menggelap jadi suasana badai: awan, pulau batu melayang, kabut berlapis, bintang |
+| 5,0-6,8 | Manifestasi sosok raksasa: bintang muncul -> garis terbentuk berurutan -> aura nebula menebal dari kaki ke kepala -> mata menyala |
+| 6,8-8,0 | Panel kontrak meluncur dari kanan (easing); tombol muncul saat panel sudah ~60% terlihat |
+Spasi / Enter melompati cutscene; Esc menutup.
+
+**File:**
+- `CutsceneCamera.java`: jalur kamera spline Hermite (tabel `KEYS`), komposisi layar akhir, penempatan sosok raksasa, pembersihan HUD/kamera (`stop()`).
+- `CosmosFx.java`: tirai gelap dengan sorotan di patung, gradasi dasar, vignette, bintang.
+- `StormFx.java`: awan badai, pulau melayang, kabut berlapis, cahaya kaki patung, petir bercabang (Thor), kilatan, bara.
+- `GiantFx.java`: sosok raksasa berlapis (aura nebula, cahaya luar/dalam, garis inti, bintang berdenyut, mata, debu bintang).
+- `FxSprites.java`: pembantu gambar sprite/poligon/garis.
+- `ContractScreen.java`: timeline, tema panel (navy/cyan untuk Thor, emas untuk Ra), partikel dunia, guntur.
+- `CameraMixin.java`: ditambah pembersihan otomatis (layar tertutup / pemain keluar / error).
+- Aset: `textures/gui/nebula_blob.png`, `star_glow.png`, `mist.png` (dibuat `tools/make_fx_textures.py`); `constellations/thor.json` dan `ra.json` (dibuat `tools/make_giant.py`; sekarang berisi `blobs` aura dan `dust`).
+- Model 3D, texture model, animasi GeckoLib, renderer, jaringan, dan sistem kontrak TIDAK diubah.
+
+## Tahap 4c: shader GLSL cutscene
+- **Shader:** `assets/kontrakdewa/shaders/core/storm.vsh` dan `storm.fsh` (GLSL 330). Langit badai kosmik layar penuh: awan berputar (pusaran di atas patung), nebula, bintang berkelap-kelip, berkas cahaya, kabut dasar bergerak, kilat internal di dalam awan, dan kilatan petir yang menerangi awan. Dua palet: Thor (biru) dan Ra (emas, lewat `#define RA`).
+- **Lubang siluet patung:** shader membuat area berbentuk badan sempit + alas lebar hampir bening, sehingga patung tetap terlihat jelas, dengan cahaya lembut di tepinya.
+- **Integrasi:** `ShaderFx.java` mendaftarkan pipeline OPSIONAL (`RenderPipelines.registerOptional`), jadi kalau shader gagal dikompilasi game tidak crash dan efek bawaan (`CosmosFx`) dipakai. Parameter dikirim lewat warna vertex (x/y/tinggi patung, kegelapan, kilatan); waktu dari `Globals.GameTime`.
+- **Opsi mematikan:** `config/kontrakdewa.json` -> `"cutsceneShader": false`.
+- **Pratinjau/validasi di luar game:** `tools/preview_shader.py <thor|ra> <out.png>` me-render shader lewat OpenGL headless di atas dunia tiruan; shader divalidasi dengan `glslangValidator`.
 
 ## Rencana
 2. Weapon takdir, HUD skill (Z/C/V), Battle Mode, harga tiap dewa.
